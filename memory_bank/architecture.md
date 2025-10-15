@@ -20,16 +20,22 @@
 - `lib/src/presentation/theme/theme_extensions.dart`: Custom theme extensions (`AppColors`, `AppTextStyles`) plus convenience getters for use throughout the UI.
 
 ## Domain Layer
-- `lib/src/domain/`: Placeholder for entities, repositories, and use cases defined in the implementation plan; currently contains a `.gitkeep` so structure exists before code generation.
+- `lib/src/domain/entities/device_risk_level.dart`: Freezed union modeling Low/Medium/High/Unknown device risk with helper labels/priorities.
+- `lib/src/domain/entities/scan_source.dart`: Freezed union defining Wi-Fi/Bluetooth scan sources.
+- `lib/src/domain/entities/detected_device.dart`: Core immutable entity capturing device metadata, manufacturer info, risk level, source, and trust flags.
+- `lib/src/domain/repositories/`: Abstractions for device scanning and subscription management to keep use cases UI/data agnostic.
+- `lib/src/domain/usecases/`: Application-specific actions (get network devices, get Bluetooth devices, get subscription status, purchase subscription, restore purchases) that orchestrate repository calls.
 
 ## Data Layer
 - `lib/src/data/`: Planned home for repositories, data sources, and Pigeon integrations referencing Swift native code.
+- `pigeons/scanner_api.dart`: Source definition for Pigeon-generated messaging between Flutter and native scanners; outputs to `lib/src/pigeon/scanner_api.g.dart` and `ios/Runner/Pigeons/ScannerApi.g.{h,m}`.
 
 ## Shared Utilities
 - `lib/core/`: Intended for shared utilities (constants, error models, logging adapters). A `.gitkeep` maintains the folder until populated.
+- `lib/core/exceptions/failure.dart`: Freezed union encapsulating domain-level failure types with default messaging.
 
 ## Environment & Configuration
-- `pubspec.yaml`: Includes `flutter_launcher_icons`, `flutter_native_splash`, plus runtime deps `go_router`, `permission_handler`, and `shared_preferences`.
+- `pubspec.yaml`: Includes `flutter_launcher_icons`, `flutter_native_splash`, and runtime deps `go_router`, `permission_handler`, `shared_preferences`, `package_info_plus`, `url_launcher`, along with codegen tooling (`freezed_annotation`, `freezed`, `build_runner`).
 - `assets/branding/app_icon.png`, `splash_icon.png`: Temporary solid-color assets consumed by icon/splash generators.
 
 ## iOS Project Configuration

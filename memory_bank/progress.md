@@ -44,3 +44,22 @@
 - Replaced the placeholder settings view with sections for subscription status, restore purchases, data/privacy links, and app metadata (`lib/src/presentation/screens/settings_screen.dart`).
 - Restore purchases now toggles premium access in-app via shared state; clear data wipes stored preferences, resets onboarding, and routes back to the onboarding flow.
 - Added `package_info_plus` and `url_launcher` dependencies to support version display and external privacy/terms links; updated routing/app state to respond to premium/onboarding changes dynamically.
+
+## 2025-10-14 — Step 3.1 (Domain Entities)
+- Added `freezed_annotation`/`freezed` + `build_runner` tooling and generated immutable domain models.
+- Defined `DeviceRiskLevel`, `ScanSource`, and `DetectedDevice` entities using Freezed unions (`lib/src/domain/entities/*.dart`).
+- Generated supporting `*.freezed.dart` artifacts via `flutter pub run build_runner build --delete-conflicting-outputs` to ensure future domain logic can rely on copyWith/equality helpers.
+
+## 2025-10-14 — Step 3.2 (Use Cases & Repositories)
+- Added domain repository abstractions for device scans and subscription workflows (`lib/src/domain/repositories/`).
+- Implemented use case classes for network scans, Bluetooth scans, subscription status, purchases, and restores (`lib/src/domain/usecases/`).
+- These use cases encapsulate repository calls, priming the domain layer for Riverpod providers and future data integrations.
+
+## 2025-10-14 — Step 3.3 (Failure Modeling)
+- Introduced a shared `Failure` sealed class (Freezed union) under `lib/core/exceptions/` with convenience messaging.
+- Updated domain repositories/use cases to return `Either<Failure, …>` results using `dartz`, enabling consistent error propagation throughout the clean architecture layers.
+
+## 2025-10-14 — Step 4.1 (Pigeon Setup)
+- Added `pigeon` dev dependency and created `pigeons/scanner_api.dart` describing host/flutter APIs for scan management.
+- Generated Dart bindings (`lib/src/pigeon/scanner_api.g.dart`) and iOS Obj-C stubs (`ios/Runner/Pigeons/ScannerApi.g.{h,m}`) via `flutter pub run pigeon --input pigeons/scanner_api.dart`.
+- Established Scan DTOs and callback structure to be hooked up by native implementations in subsequent steps.
