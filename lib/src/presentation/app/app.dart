@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hidden_camera_detector/core/config/paywall_mode.dart';
 import '../navigation/app_router.dart';
 import '../onboarding/onboarding_storage.dart';
 import '../permissions/permission_coordinator.dart';
@@ -12,10 +13,12 @@ class HiddenCameraDetectorApp extends StatefulWidget {
     super.key,
     required this.onboardingCompleted,
     required this.subscriptionController,
+    required this.paywallMode,
   });
 
   final bool onboardingCompleted;
   final SubscriptionController subscriptionController;
+  final PaywallMode paywallMode;
 
   @override
   State<HiddenCameraDetectorApp> createState() =>
@@ -26,7 +29,8 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
   late final ValueNotifier<bool> _onboardingCompletedNotifier;
   late final AppRouter _appRouter;
   final OnboardingStorage _onboardingStorage = const OnboardingStorage();
-  final PermissionCoordinator _permissionCoordinator = const PermissionCoordinator();
+  final PermissionCoordinator _permissionCoordinator =
+      const PermissionCoordinator();
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
         _onboardingCompletedNotifier.value = false;
       },
       permissionCoordinator: _permissionCoordinator,
+      paywallMode: widget.paywallMode,
       refreshListenables: [
         widget.subscriptionController,
         _onboardingCompletedNotifier,

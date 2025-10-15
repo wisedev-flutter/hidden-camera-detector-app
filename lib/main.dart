@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/config/paywall_mode.dart';
 import 'src/data/datasources/revenuecat_data_source.dart';
 import 'src/data/repositories/revenuecat_subscription_repository.dart';
 import 'src/domain/usecases/get_subscription_status_use_case.dart';
@@ -19,10 +20,16 @@ const _premiumEntitlementId = String.fromEnvironment(
   defaultValue: 'premium',
 );
 
+const _paywallModeValue = String.fromEnvironment(
+  'PAYWALL_MODE',
+  defaultValue: 'revenuecat',
+);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final onboardingCompleted = await const OnboardingStorage().isCompleted();
+  final paywallMode = PaywallModeX.fromEnvironment(_paywallModeValue);
 
   final revenueCatDataSource = RevenueCatDataSource(apiKey: _revenueCatApiKey);
 
@@ -40,9 +47,7 @@ Future<void> main() async {
     purchaseSubscriptionUseCase: PurchaseSubscriptionUseCase(
       subscriptionRepository,
     ),
-    restorePurchasesUseCase: RestorePurchasesUseCase(
-      subscriptionRepository,
-    ),
+    restorePurchasesUseCase: RestorePurchasesUseCase(subscriptionRepository),
   );
 
   await subscriptionController.initialize();
@@ -51,6 +56,7 @@ Future<void> main() async {
     HiddenCameraDetectorApp(
       onboardingCompleted: onboardingCompleted,
       subscriptionController: subscriptionController,
+      paywallMode: paywallMode,
     ),
   );
 }

@@ -131,6 +131,11 @@ class SubscriptionController with ChangeNotifier {
     AppLogger.log.debug('Subscription controller reset.');
   }
 
+  void activateMockPremium() {
+    AppLogger.log.warn('Premium unlocked via mock paywall flow.');
+    _isPremiumNotifier.value = true;
+  }
+
   @override
   void dispose() {
     _customerInfoSubscription?.cancel();

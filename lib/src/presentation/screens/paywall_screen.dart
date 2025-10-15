@@ -5,13 +5,16 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
+import 'package:hidden_camera_detector/core/config/paywall_mode.dart';
 import '../navigation/app_route.dart';
 import '../subscription/subscription_controller.dart';
 import '../theme/theme_extensions.dart';
 import '../widgets/device_result_card.dart';
 
 class PaywallScreen extends StatelessWidget {
-  const PaywallScreen({super.key});
+  const PaywallScreen({super.key, required this.paywallMode});
+
+  final PaywallMode paywallMode;
 
   static const _mockDevices = [
     DeviceResultDisplayData(
@@ -46,9 +49,9 @@ class PaywallScreen extends StatelessWidget {
   }
 
   void _showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _presentRevenueCatPaywall(BuildContext context) async {
@@ -57,8 +60,9 @@ class PaywallScreen extends StatelessWidget {
         displayCloseButton: true,
       );
       if (!context.mounted) return;
-      await SubscriptionControllerProvider.of(context)
-          .handlePaywallResult(result);
+      await SubscriptionControllerProvider.of(
+        context,
+      ).handlePaywallResult(result);
       if (!context.mounted) return;
       _handlePaywallFeedback(context, result);
     } on PlatformException catch (error) {
@@ -74,10 +78,7 @@ class PaywallScreen extends StatelessWidget {
     switch (result) {
       case PaywallResult.purchased:
       case PaywallResult.restored:
-        _showSnackBar(
-          context,
-          'Thanks! Your premium access is now unlocked.',
-        );
+        _showSnackBar(context, 'Thanks! Your premium access is now unlocked.');
         break;
       case PaywallResult.cancelled:
         _showSnackBar(context, 'Purchase cancelled.');
@@ -94,10 +95,56 @@ class PaywallScreen extends StatelessWidget {
     }
   }
 
+  Future<void> _simulatePurchase(BuildContext context, String planLabel) async {
+    final controller = SubscriptionControllerProvider.of(context);
+    controller.activateMockPremium();
+    if (!context.mounted) return;
+    _showSnackBar(context, 'Premium unlocked (mock $planLabel plan).');
+    _onContinueWithoutSubscription(context);
+  }
+
+  Future<void> _simulateRestore(BuildContext context) async {
+    final controller = SubscriptionControllerProvider.of(context);
+    controller.activateMockPremium();
+    if (!context.mounted) return;
+    _showSnackBar(context, 'Mock restore completed. Premium re-enabled.');
+    _onContinueWithoutSubscription(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textStyles = context.appTextStyles;
     final scheme = Theme.of(context).colorScheme;
+    final isCustom = paywallMode.isCustom;
+    final planHighlights = isCustom
+        ? const [
+            _PlanHighlightData(
+              icon: Icons.developer_mode_rounded,
+              title: 'Development build paywall',
+              subtitle:
+                  'Plans below simulate purchases locally so you can test premium flows without RevenueCat.',
+            ),
+            _PlanHighlightData(
+              icon: Icons.auto_awesome_rounded,
+              title: 'No real charges will occur',
+              subtitle:
+                  'Use this mode only in development. Remember to switch back before releasing.',
+            ),
+          ]
+        : const [
+            _PlanHighlightData(
+              icon: Icons.local_offer_rounded,
+              title: 'Live offers from RevenueCat',
+              subtitle:
+                  'Weekly and yearly plans load directly from the dashboard once configured.',
+            ),
+            _PlanHighlightData(
+              icon: Icons.autorenew_rounded,
+              title: 'Manage subscriptions easily',
+              subtitle:
+                  'Users can upgrade, downgrade, or cancel via the App Store at any time.',
+            ),
+          ];
 
     return Scaffold(
       appBar: AppBar(
@@ -127,6 +174,7 @@ class PaywallScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _BlurredResults(devices: _mockDevices),
           const SizedBox(height: 24),
+          if (isCustom) ...[const _DevModeBanner(), const SizedBox(height: 16)],
           Text(
             'Choose your plan',
             style: textStyles.sectionTitle.copyWith(color: scheme.onSurface),
@@ -139,30 +187,34 @@ class PaywallScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
-              children: const [
-                _PlanHighlight(
-                  icon: Icons.local_offer_rounded,
-                  title: 'Live offers from RevenueCat',
-                  subtitle:
-                      'Weekly and yearly plans load directly from the dashboard once configured.',
-                ),
-                SizedBox(height: 12),
-                _PlanHighlight(
-                  icon: Icons.autorenew_rounded,
-                  title: 'Manage subscriptions easily',
-                  subtitle:
-                      'Users can upgrade, downgrade, or cancel via the App Store at any time.',
-                ),
+              children: [
+                for (var i = 0; i < planHighlights.length; i++) ...[
+                  _PlanHighlight(
+                    icon: planHighlights[i].icon,
+                    title: planHighlights[i].title,
+                    subtitle: planHighlights[i].subtitle,
+                  ),
+                  if (i != planHighlights.length - 1)
+                    const SizedBox(height: 12),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: () => _presentRevenueCatPaywall(context),
-            icon: const Icon(Icons.shopping_bag_outlined),
-            label: const Text('See premium plans'),
-          ),
-          const SizedBox(height: 12),
+          if (isCustom) ...[
+            _MockPaywallOptions(
+              onSelectPlan: (plan) => _simulatePurchase(context, plan),
+              onRestore: () => _simulateRestore(context),
+            ),
+            const SizedBox(height: 12),
+          ] else ...[
+            FilledButton.icon(
+              onPressed: () => _presentRevenueCatPaywall(context),
+              icon: const Icon(Icons.shopping_bag_outlined),
+              label: const Text('See premium plans'),
+            ),
+            const SizedBox(height: 12),
+          ],
           TextButton(
             onPressed: () => _onContinueWithoutSubscription(context),
             child: const Text('Continue without subscribing'),
@@ -232,6 +284,146 @@ class _PlanHighlight extends StatelessWidget {
       ],
     );
   }
+}
+
+class _DevModeBanner extends StatelessWidget {
+  const _DevModeBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: scheme.tertiaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_rounded, color: scheme.onTertiaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Development mode: mock paywall enabled. No real purchases occur.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onTertiaryContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MockPaywallOptions extends StatelessWidget {
+  const _MockPaywallOptions({
+    required this.onSelectPlan,
+    required this.onRestore,
+  });
+
+  final ValueChanged<String> onSelectPlan;
+  final VoidCallback onRestore;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _MockPlanCard(
+                  key: const ValueKey('mock-plan-weekly'),
+                  title: 'Weekly Access',
+                  price: '\$4.99 / week',
+                  description: 'Unlimited scanning for 7 days.',
+                  onPressed: () => onSelectPlan('weekly'),
+                  accentColor: scheme.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _MockPlanCard(
+                  key: const ValueKey('mock-plan-monthly'),
+                  title: 'Monthly Access',
+                  price: '\$12.99 / month',
+                  description:
+                      'Best for ongoing protection with monthly billing.',
+                  onPressed: () => onSelectPlan('monthly'),
+                  accentColor: scheme.secondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: onRestore,
+          icon: const Icon(Icons.restore_rounded),
+          label: const Text('Simulate restore purchases'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MockPlanCard extends StatelessWidget {
+  const _MockPlanCard({
+    super.key,
+    required this.title,
+    required this.price,
+    required this.description,
+    required this.onPressed,
+    required this.accentColor,
+  });
+
+  final String title;
+  final String price;
+  final String description;
+  final VoidCallback onPressed;
+  final Color accentColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final textStyles = context.appTextStyles;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Text(title, style: textStyles.sectionTitle),
+            const SizedBox(height: 4),
+            Text(
+              price,
+              style: textStyles.sectionTitle.copyWith(color: accentColor),
+            ),
+            const SizedBox(height: 8),
+            Text(description, style: textStyles.supporting),
+            const Spacer(),
+            FilledButton(onPressed: onPressed, child: const Text('Subscribe')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanHighlightData {
+  const _PlanHighlightData({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
 }
 
 class _BlurredResults extends StatelessWidget {

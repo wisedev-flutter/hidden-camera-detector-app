@@ -98,3 +98,8 @@
 - Added a sanitising logger facade (`lib/core/logging/app_logger.dart`) that redacts IP, MAC, and IPv6 patterns and no-ops outside debug builds.
 - Threaded the logger through the subscription lifecycle to capture configuration and entitlement changes without emitting PII.
 - Crafted unit coverage (`test/core/logging/app_logger_test.dart`) validating the redaction rules so future logging stays compliant.
+
+## 2025-10-14 — Step 5 (Interim Paywall Mode)
+- Added a `PaywallMode` config parsed from `PAYWALL_MODE` so developers can flip between the RevenueCat flow and a local mock paywall.
+- Updated `PaywallScreen` to surface a development-only banner and mock weekly/monthly plans that unlock premium via `SubscriptionController.activateMockPremium()`.
+- Introduced focused widget coverage (`test/presentation/screens/paywall_screen_test.dart`) to ensure the custom paywall renders and is discoverable when the flag is enabled.

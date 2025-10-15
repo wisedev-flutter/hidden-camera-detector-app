@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:hidden_camera_detector/core/config/paywall_mode.dart';
 import '../permissions/permission_coordinator.dart';
 import '../screens/bluetooth_scan_screen.dart';
 import '../screens/dashboard_screen.dart';
@@ -29,14 +30,16 @@ class AppRouter {
     required RestorePurchasesHandler restorePurchasesHandler,
     required ClearAllDataHandler clearAllDataHandler,
     required PermissionCoordinator permissionCoordinator,
+    required PaywallMode paywallMode,
     List<Listenable> refreshListenables = const [],
   }) : _premiumAccessResolver = premiumAccessResolver,
-      _onboardingCompletionResolver = onboardingCompletionResolver,
-      _onboardingCompletionUpdater = onboardingCompletionUpdater,
-      _restorePurchasesHandler = restorePurchasesHandler,
-      _clearAllDataHandler = clearAllDataHandler,
-      _permissionCoordinator = permissionCoordinator,
-      _refreshListenables = refreshListenables;
+       _onboardingCompletionResolver = onboardingCompletionResolver,
+       _onboardingCompletionUpdater = onboardingCompletionUpdater,
+       _restorePurchasesHandler = restorePurchasesHandler,
+       _clearAllDataHandler = clearAllDataHandler,
+       _permissionCoordinator = permissionCoordinator,
+       _paywallMode = paywallMode,
+       _refreshListenables = refreshListenables;
 
   final PremiumAccessResolver _premiumAccessResolver;
   final OnboardingCompletionResolver _onboardingCompletionResolver;
@@ -44,6 +47,7 @@ class AppRouter {
   final RestorePurchasesHandler _restorePurchasesHandler;
   final ClearAllDataHandler _clearAllDataHandler;
   final PermissionCoordinator _permissionCoordinator;
+  final PaywallMode _paywallMode;
   final List<Listenable> _refreshListenables;
 
   late final GoRouter router = GoRouter(
@@ -115,7 +119,7 @@ class AppRouter {
       GoRoute(
         path: AppRoute.paywall.path,
         name: AppRoute.paywall.name,
-        builder: (context, state) => const PaywallScreen(),
+        builder: (context, state) => PaywallScreen(paywallMode: _paywallMode),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

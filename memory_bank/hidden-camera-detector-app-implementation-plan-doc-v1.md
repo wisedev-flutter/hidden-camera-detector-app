@@ -271,7 +271,10 @@ In `ios/Runner/`:
 
 ---
 
-### Step 4.5 — Logging & Diagnostics
+
+---
+
+### Step 4.6 — Logging & Diagnostics
 - **CRITICAL PRIVACY REQUIREMENT:** Never log PII (e.g., IP addresses, MAC addresses, device names). Route all logging through a sanitised utility that strips or redacts sensitive fields before emitting messages.
 - Add `logger` package for development-only diagnostics.
 - (Optional) Add Crashlytics/Sentry (with ATT prompt if needed) once the logging wrapper guarantees no PII leakage.
@@ -283,9 +286,20 @@ In `ios/Runner/`:
 
 ---
 
-## 5. IR Light Detection
+### Step 5 — Interim Paywall Mode (Development Only)
+- Introduce a build-time flag (e.g., `--dart-define=PAYWALL_MODE=custom`) that swaps the paywall experience between RevenueCat (default) and a local mock UI for developers without RevenueCat credentials.
+- Abstract paywall presentation behind an interface so both the custom flow and RevenueCat integration share the same entry points and result handling.
+- Implement a temporary custom paywall widget with weekly/monthly purchase options that calls back into `SubscriptionController` with simulated success or cancellation states.
+- Display a visible banner or log warning when the app runs in custom mode to prevent shipping the stub to production.
 
-### Step 5.1 — Implement IR Camera
+✅ **Test:**
+- Run the app in “custom” mode and verify fake purchases toggle premium state, restore hooks function, and navigation back to the dashboard works.
+- Switch back to RevenueCat mode and confirm the original flow still builds (even if purchases fail without credentials).
+
+
+## 6. IR Light Detection
+
+### Step 6.1 — Implement IR Camera
 - Use `camera` package.
 - Apply grayscale filter using `ColorFiltered`.
 - Show permission prompt if denied.
@@ -294,9 +308,9 @@ In `ios/Runner/`:
 
 ---
 
-## 6. Monetization Logic
+## 7. Monetization Logic
 
-### Step 6.1 — RevenueCat Entitlement Handling
+### Step 7.1 — RevenueCat Entitlement Handling
 - Define single “premium” entitlement.
 - Provide stream-based `SubscriptionProvider` using Riverpod.
 
@@ -304,9 +318,9 @@ In `ios/Runner/`:
 
 ---
 
-## 7. App Lifecycle & Resource Management
+## 8. App Lifecycle & Resource Management
 
-### Step 7.1 — Scan Management
+### Step 8.1 — Scan Management
 - Automatically cancel scans after **60 seconds**.
 - Stop active scans when app backgrounded.
 
@@ -316,9 +330,9 @@ Backgrounding stops scan.
 
 ---
 
-## 8. Security & Privacy
+## 9. Security & Privacy
 
-### Step 8.1 — Data Clearing
+### Step 9.1 — Data Clearing
 - Implement `clearAllData()` in settings.
 - Wipe shared preferences.
 
@@ -327,7 +341,7 @@ Clear data → onboarding shown again on next app launch.
 
 ---
 
-### Step 8.2 — Privacy Manifest
+### Step 9.2 — Privacy Manifest
 - Add `PrivacyInfo.xcprivacy`.
 - Ensure no PII (MAC/IP) logged.
 
@@ -336,9 +350,9 @@ Validate build via App Store Connect — no privacy warnings.
 
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
-### Step 9.1 — Unit Tests
+### Step 10.1 — Unit Tests
 - Achieve 100% coverage on domain use cases.
 - Use `mocktail` for dependencies.
 
@@ -347,7 +361,7 @@ Run `flutter test --coverage` → 100% domain coverage.
 
 ---
 
-### Step 9.2 — Widget & Golden Tests
+### Step 10.2 — Widget & Golden Tests
 - Test AsyncValue states (loading/data/error).
 - Add Golden tests for all core widgets.
 
@@ -356,7 +370,7 @@ Run test suite in CI — no regressions in golden images.
 
 ---
 
-### Step 9.3 — Integration Tests
+### Step 10.3 — Integration Tests
 - Mock Pigeon APIs.
 - Simulate scan → paywall → purchase → dashboard flow.
 
@@ -365,9 +379,9 @@ Integration tests complete successfully with no failures.
 
 ---
 
-## 10. CI/CD Setup
+## 11. CI/CD Setup
 
-### Step 10.1 — Continuous Integration
+### Step 11.1 — Continuous Integration
 - Add GitHub Actions (or Codemagic) workflow:
   - `flutter analyze`
   - `flutter test`
@@ -379,9 +393,9 @@ Fixed → passes CI.
 
 ---
 
-## 11. Performance Validation
+## 12. Performance Validation
 
-### Step 11.1 — Verify Performance Targets
+### Step 12.1 — Verify Performance Targets
 - **Cold Start:** < 2.5s  
 - **Scan Duration:** ≤ 60s  
 - **UI FPS:** ≥ 60fps (frame build time < 16ms)

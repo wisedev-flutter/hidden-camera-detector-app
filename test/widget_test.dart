@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:hidden_camera_detector/core/config/paywall_mode.dart';
 import 'package:hidden_camera_detector/src/data/datasources/revenuecat_data_source.dart';
 import 'package:hidden_camera_detector/src/data/repositories/revenuecat_subscription_repository.dart';
 import 'package:hidden_camera_detector/src/domain/usecases/get_subscription_status_use_case.dart';
@@ -40,7 +41,9 @@ CustomerInfo _createEmptyCustomerInfo() {
 }
 
 void main() {
-  testWidgets('Onboarding headline is shown when not completed', (tester) async {
+  testWidgets('Onboarding headline is shown when not completed', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 1920);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -84,6 +87,7 @@ void main() {
       HiddenCameraDetectorApp(
         onboardingCompleted: false,
         subscriptionController: controller,
+        paywallMode: PaywallMode.revenuecat,
       ),
     );
 
