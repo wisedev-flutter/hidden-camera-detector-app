@@ -23,6 +23,16 @@
 }
 @end
 
+@implementation HCDPigeonDeviceRiskLevelBox
+- (instancetype)initWithValue:(HCDPigeonDeviceRiskLevel)value {
+  self = [super init];
+  if (self) {
+    _value = value;
+  }
+  return self;
+}
+@end
+
 static NSArray *wrapResult(id result, FlutterError *error) {
   if (error) {
     return @[
@@ -42,26 +52,26 @@ static id GetNullableObjectAtIndex(NSArray *array, NSInteger key) {
 - (NSArray *)toList;
 @end
 
-@interface HCDScanResultDto ()
-+ (HCDScanResultDto *)fromList:(NSArray *)list;
-+ (nullable HCDScanResultDto *)nullableFromList:(NSArray *)list;
+@interface HCDDeviceEventDto ()
++ (HCDDeviceEventDto *)fromList:(NSArray *)list;
++ (nullable HCDDeviceEventDto *)nullableFromList:(NSArray *)list;
 - (NSArray *)toList;
 @end
 
 @implementation HCDDeviceDto
 + (instancetype)makeWithId:(NSString *)id
     name:(NSString *)name
-    manufacturer:(nullable NSString *)manufacturer
     source:(HCDPigeonScanSource)source
+    manufacturer:(nullable NSString *)manufacturer
     ipAddress:(nullable NSString *)ipAddress
     rssi:(nullable NSNumber *)rssi
-    isTrusted:(nullable NSNumber *)isTrusted
-    riskLevel:(nullable NSString *)riskLevel {
+    isTrusted:(NSNumber *)isTrusted
+    riskLevel:(nullable HCDPigeonDeviceRiskLevelBox *)riskLevel {
   HCDDeviceDto* pigeonResult = [[HCDDeviceDto alloc] init];
   pigeonResult.id = id;
   pigeonResult.name = name;
-  pigeonResult.manufacturer = manufacturer;
   pigeonResult.source = source;
+  pigeonResult.manufacturer = manufacturer;
   pigeonResult.ipAddress = ipAddress;
   pigeonResult.rssi = rssi;
   pigeonResult.isTrusted = isTrusted;
@@ -74,12 +84,15 @@ static id GetNullableObjectAtIndex(NSArray *array, NSInteger key) {
   NSAssert(pigeonResult.id != nil, @"");
   pigeonResult.name = GetNullableObjectAtIndex(list, 1);
   NSAssert(pigeonResult.name != nil, @"");
-  pigeonResult.manufacturer = GetNullableObjectAtIndex(list, 2);
-  pigeonResult.source = [GetNullableObjectAtIndex(list, 3) integerValue];
+  pigeonResult.source = [GetNullableObjectAtIndex(list, 2) integerValue];
+  pigeonResult.manufacturer = GetNullableObjectAtIndex(list, 3);
   pigeonResult.ipAddress = GetNullableObjectAtIndex(list, 4);
   pigeonResult.rssi = GetNullableObjectAtIndex(list, 5);
   pigeonResult.isTrusted = GetNullableObjectAtIndex(list, 6);
-  pigeonResult.riskLevel = GetNullableObjectAtIndex(list, 7);
+  NSAssert(pigeonResult.isTrusted != nil, @"");
+  NSNumber *riskLevelAsNumber = GetNullableObjectAtIndex(list, 7);
+  HCDPigeonDeviceRiskLevelBox *riskLevel = riskLevelAsNumber == nil ? nil : [[HCDPigeonDeviceRiskLevelBox alloc] initWithValue:[riskLevelAsNumber integerValue]];
+  pigeonResult.riskLevel = riskLevel;
   return pigeonResult;
 }
 + (nullable HCDDeviceDto *)nullableFromList:(NSArray *)list {
@@ -89,86 +102,59 @@ static id GetNullableObjectAtIndex(NSArray *array, NSInteger key) {
   return @[
     (self.id ?: [NSNull null]),
     (self.name ?: [NSNull null]),
-    (self.manufacturer ?: [NSNull null]),
     @(self.source),
+    (self.manufacturer ?: [NSNull null]),
     (self.ipAddress ?: [NSNull null]),
     (self.rssi ?: [NSNull null]),
     (self.isTrusted ?: [NSNull null]),
-    (self.riskLevel ?: [NSNull null]),
+    (self.riskLevel == nil ? [NSNull null] : [NSNumber numberWithInteger:self.riskLevel.value]),
   ];
 }
 @end
 
-@implementation HCDScanResultDto
+@implementation HCDDeviceEventDto
 + (instancetype)makeWithSource:(HCDPigeonScanSource)source
-    devices:(NSArray<HCDDeviceDto *> *)devices {
-  HCDScanResultDto* pigeonResult = [[HCDScanResultDto alloc] init];
+    device:(HCDDeviceDto *)device
+    eventId:(NSNumber *)eventId
+    totalDiscovered:(nullable NSNumber *)totalDiscovered
+    isFinal:(NSNumber *)isFinal {
+  HCDDeviceEventDto* pigeonResult = [[HCDDeviceEventDto alloc] init];
   pigeonResult.source = source;
-  pigeonResult.devices = devices;
+  pigeonResult.device = device;
+  pigeonResult.eventId = eventId;
+  pigeonResult.totalDiscovered = totalDiscovered;
+  pigeonResult.isFinal = isFinal;
   return pigeonResult;
 }
-+ (HCDScanResultDto *)fromList:(NSArray *)list {
-  HCDScanResultDto *pigeonResult = [[HCDScanResultDto alloc] init];
++ (HCDDeviceEventDto *)fromList:(NSArray *)list {
+  HCDDeviceEventDto *pigeonResult = [[HCDDeviceEventDto alloc] init];
   pigeonResult.source = [GetNullableObjectAtIndex(list, 0) integerValue];
-  pigeonResult.devices = GetNullableObjectAtIndex(list, 1);
-  NSAssert(pigeonResult.devices != nil, @"");
+  pigeonResult.device = [HCDDeviceDto nullableFromList:(GetNullableObjectAtIndex(list, 1))];
+  NSAssert(pigeonResult.device != nil, @"");
+  pigeonResult.eventId = GetNullableObjectAtIndex(list, 2);
+  NSAssert(pigeonResult.eventId != nil, @"");
+  pigeonResult.totalDiscovered = GetNullableObjectAtIndex(list, 3);
+  pigeonResult.isFinal = GetNullableObjectAtIndex(list, 4);
+  NSAssert(pigeonResult.isFinal != nil, @"");
   return pigeonResult;
 }
-+ (nullable HCDScanResultDto *)nullableFromList:(NSArray *)list {
-  return (list) ? [HCDScanResultDto fromList:list] : nil;
++ (nullable HCDDeviceEventDto *)nullableFromList:(NSArray *)list {
+  return (list) ? [HCDDeviceEventDto fromList:list] : nil;
 }
 - (NSArray *)toList {
   return @[
     @(self.source),
-    (self.devices ?: [NSNull null]),
+    (self.device ? [self.device toList] : [NSNull null]),
+    (self.eventId ?: [NSNull null]),
+    (self.totalDiscovered ?: [NSNull null]),
+    (self.isFinal ?: [NSNull null]),
   ];
-}
-@end
-
-@interface HCDScannerHostApiCodecReader : FlutterStandardReader
-@end
-@implementation HCDScannerHostApiCodecReader
-- (nullable id)readValueOfType:(UInt8)type {
-  switch (type) {
-    case 128: 
-      return [HCDDeviceDto fromList:[self readValue]];
-    default:
-      return [super readValueOfType:type];
-  }
-}
-@end
-
-@interface HCDScannerHostApiCodecWriter : FlutterStandardWriter
-@end
-@implementation HCDScannerHostApiCodecWriter
-- (void)writeValue:(id)value {
-  if ([value isKindOfClass:[HCDDeviceDto class]]) {
-    [self writeByte:128];
-    [self writeValue:[value toList]];
-  } else {
-    [super writeValue:value];
-  }
-}
-@end
-
-@interface HCDScannerHostApiCodecReaderWriter : FlutterStandardReaderWriter
-@end
-@implementation HCDScannerHostApiCodecReaderWriter
-- (FlutterStandardWriter *)writerWithData:(NSMutableData *)data {
-  return [[HCDScannerHostApiCodecWriter alloc] initWithData:data];
-}
-- (FlutterStandardReader *)readerWithData:(NSData *)data {
-  return [[HCDScannerHostApiCodecReader alloc] initWithData:data];
 }
 @end
 
 NSObject<FlutterMessageCodec> *HCDScannerHostApiGetCodec(void) {
   static FlutterStandardMessageCodec *sSharedObject = nil;
-  static dispatch_once_t sPred = 0;
-  dispatch_once(&sPred, ^{
-    HCDScannerHostApiCodecReaderWriter *readerWriter = [[HCDScannerHostApiCodecReaderWriter alloc] init];
-    sSharedObject = [FlutterStandardMessageCodec codecWithReaderWriter:readerWriter];
-  });
+  sSharedObject = [FlutterStandardMessageCodec sharedInstance];
   return sSharedObject;
 }
 
@@ -176,49 +162,13 @@ void SetUpHCDScannerHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject
   {
     FlutterBasicMessageChannel *channel =
       [[FlutterBasicMessageChannel alloc]
-        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.getNetworkDevices"
+        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startWifiScan"
         binaryMessenger:binaryMessenger
         codec:HCDScannerHostApiGetCodec()];
     if (api) {
-      NSCAssert([api respondsToSelector:@selector(getNetworkDevicesWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(getNetworkDevicesWithCompletion:)", api);
+      NSCAssert([api respondsToSelector:@selector(startWifiScanWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(startWifiScanWithCompletion:)", api);
       [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
-        [api getNetworkDevicesWithCompletion:^(NSArray<HCDDeviceDto *> *_Nullable output, FlutterError *_Nullable error) {
-          callback(wrapResult(output, error));
-        }];
-      }];
-    } else {
-      [channel setMessageHandler:nil];
-    }
-  }
-  {
-    FlutterBasicMessageChannel *channel =
-      [[FlutterBasicMessageChannel alloc]
-        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.getBluetoothDevices"
-        binaryMessenger:binaryMessenger
-        codec:HCDScannerHostApiGetCodec()];
-    if (api) {
-      NSCAssert([api respondsToSelector:@selector(getBluetoothDevicesWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(getBluetoothDevicesWithCompletion:)", api);
-      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
-        [api getBluetoothDevicesWithCompletion:^(NSArray<HCDDeviceDto *> *_Nullable output, FlutterError *_Nullable error) {
-          callback(wrapResult(output, error));
-        }];
-      }];
-    } else {
-      [channel setMessageHandler:nil];
-    }
-  }
-  {
-    FlutterBasicMessageChannel *channel =
-      [[FlutterBasicMessageChannel alloc]
-        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startScan"
-        binaryMessenger:binaryMessenger
-        codec:HCDScannerHostApiGetCodec()];
-    if (api) {
-      NSCAssert([api respondsToSelector:@selector(startScanSource:completion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(startScanSource:completion:)", api);
-      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
-        NSArray *args = message;
-        HCDPigeonScanSource arg_source = [GetNullableObjectAtIndex(args, 0) integerValue];
-        [api startScanSource:arg_source completion:^(FlutterError *_Nullable error) {
+        [api startWifiScanWithCompletion:^(FlutterError *_Nullable error) {
           callback(wrapResult(nil, error));
         }];
       }];
@@ -229,15 +179,47 @@ void SetUpHCDScannerHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject
   {
     FlutterBasicMessageChannel *channel =
       [[FlutterBasicMessageChannel alloc]
-        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopScan"
+        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopWifiScan"
         binaryMessenger:binaryMessenger
         codec:HCDScannerHostApiGetCodec()];
     if (api) {
-      NSCAssert([api respondsToSelector:@selector(stopScanSource:completion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(stopScanSource:completion:)", api);
+      NSCAssert([api respondsToSelector:@selector(stopWifiScanWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(stopWifiScanWithCompletion:)", api);
       [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
-        NSArray *args = message;
-        HCDPigeonScanSource arg_source = [GetNullableObjectAtIndex(args, 0) integerValue];
-        [api stopScanSource:arg_source completion:^(FlutterError *_Nullable error) {
+        [api stopWifiScanWithCompletion:^(FlutterError *_Nullable error) {
+          callback(wrapResult(nil, error));
+        }];
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startBluetoothScan"
+        binaryMessenger:binaryMessenger
+        codec:HCDScannerHostApiGetCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(startBluetoothScanWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(startBluetoothScanWithCompletion:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        [api startBluetoothScanWithCompletion:^(FlutterError *_Nullable error) {
+          callback(wrapResult(nil, error));
+        }];
+      }];
+    } else {
+      [channel setMessageHandler:nil];
+    }
+  }
+  {
+    FlutterBasicMessageChannel *channel =
+      [[FlutterBasicMessageChannel alloc]
+        initWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopBluetoothScan"
+        binaryMessenger:binaryMessenger
+        codec:HCDScannerHostApiGetCodec()];
+    if (api) {
+      NSCAssert([api respondsToSelector:@selector(stopBluetoothScanWithCompletion:)], @"HCDScannerHostApi api (%@) doesn't respond to @selector(stopBluetoothScanWithCompletion:)", api);
+      [channel setMessageHandler:^(id _Nullable message, FlutterReply callback) {
+        [api stopBluetoothScanWithCompletion:^(FlutterError *_Nullable error) {
           callback(wrapResult(nil, error));
         }];
       }];
@@ -246,29 +228,29 @@ void SetUpHCDScannerHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject
     }
   }
 }
-@interface HCDScannerFlutterApiCodecReader : FlutterStandardReader
+@interface HCDScannerStreamApiCodecReader : FlutterStandardReader
 @end
-@implementation HCDScannerFlutterApiCodecReader
+@implementation HCDScannerStreamApiCodecReader
 - (nullable id)readValueOfType:(UInt8)type {
   switch (type) {
     case 128: 
       return [HCDDeviceDto fromList:[self readValue]];
     case 129: 
-      return [HCDScanResultDto fromList:[self readValue]];
+      return [HCDDeviceEventDto fromList:[self readValue]];
     default:
       return [super readValueOfType:type];
   }
 }
 @end
 
-@interface HCDScannerFlutterApiCodecWriter : FlutterStandardWriter
+@interface HCDScannerStreamApiCodecWriter : FlutterStandardWriter
 @end
-@implementation HCDScannerFlutterApiCodecWriter
+@implementation HCDScannerStreamApiCodecWriter
 - (void)writeValue:(id)value {
   if ([value isKindOfClass:[HCDDeviceDto class]]) {
     [self writeByte:128];
     [self writeValue:[value toList]];
-  } else if ([value isKindOfClass:[HCDScanResultDto class]]) {
+  } else if ([value isKindOfClass:[HCDDeviceEventDto class]]) {
     [self writeByte:129];
     [self writeValue:[value toList]];
   } else {
@@ -277,32 +259,32 @@ void SetUpHCDScannerHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject
 }
 @end
 
-@interface HCDScannerFlutterApiCodecReaderWriter : FlutterStandardReaderWriter
+@interface HCDScannerStreamApiCodecReaderWriter : FlutterStandardReaderWriter
 @end
-@implementation HCDScannerFlutterApiCodecReaderWriter
+@implementation HCDScannerStreamApiCodecReaderWriter
 - (FlutterStandardWriter *)writerWithData:(NSMutableData *)data {
-  return [[HCDScannerFlutterApiCodecWriter alloc] initWithData:data];
+  return [[HCDScannerStreamApiCodecWriter alloc] initWithData:data];
 }
 - (FlutterStandardReader *)readerWithData:(NSData *)data {
-  return [[HCDScannerFlutterApiCodecReader alloc] initWithData:data];
+  return [[HCDScannerStreamApiCodecReader alloc] initWithData:data];
 }
 @end
 
-NSObject<FlutterMessageCodec> *HCDScannerFlutterApiGetCodec(void) {
+NSObject<FlutterMessageCodec> *HCDScannerStreamApiGetCodec(void) {
   static FlutterStandardMessageCodec *sSharedObject = nil;
   static dispatch_once_t sPred = 0;
   dispatch_once(&sPred, ^{
-    HCDScannerFlutterApiCodecReaderWriter *readerWriter = [[HCDScannerFlutterApiCodecReaderWriter alloc] init];
+    HCDScannerStreamApiCodecReaderWriter *readerWriter = [[HCDScannerStreamApiCodecReaderWriter alloc] init];
     sSharedObject = [FlutterStandardMessageCodec codecWithReaderWriter:readerWriter];
   });
   return sSharedObject;
 }
 
-@interface HCDScannerFlutterApi ()
+@interface HCDScannerStreamApi ()
 @property(nonatomic, strong) NSObject<FlutterBinaryMessenger> *binaryMessenger;
 @end
 
-@implementation HCDScannerFlutterApi
+@implementation HCDScannerStreamApi
 
 - (instancetype)initWithBinaryMessenger:(NSObject<FlutterBinaryMessenger> *)binaryMessenger {
   self = [super init];
@@ -311,13 +293,13 @@ NSObject<FlutterMessageCodec> *HCDScannerFlutterApiGetCodec(void) {
   }
   return self;
 }
-- (void)onScanResultResult:(HCDScanResultDto *)arg_result completion:(void (^)(FlutterError *_Nullable))completion {
+- (void)onDeviceEventEvent:(HCDDeviceEventDto *)arg_event completion:(void (^)(FlutterError *_Nullable))completion {
   FlutterBasicMessageChannel *channel =
     [FlutterBasicMessageChannel
-      messageChannelWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerFlutterApi.onScanResult"
+      messageChannelWithName:@"dev.flutter.pigeon.hidden_camera_detector.ScannerStreamApi.onDeviceEvent"
       binaryMessenger:self.binaryMessenger
-      codec:HCDScannerFlutterApiGetCodec()];
-  [channel sendMessage:@[arg_result ?: [NSNull null]] reply:^(NSArray<id> *reply) {
+      codec:HCDScannerStreamApiGetCodec()];
+  [channel sendMessage:@[arg_event ?: [NSNull null]] reply:^(NSArray<id> *reply) {
     if (reply != nil) {
       if (reply.count > 1) {
         completion([FlutterError errorWithCode:reply[0] message:reply[1] details:reply[2]]);

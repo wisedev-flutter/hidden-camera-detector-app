@@ -21,57 +21,91 @@ typedef NS_ENUM(NSUInteger, HCDPigeonScanSource) {
 - (instancetype)initWithValue:(HCDPigeonScanSource)value;
 @end
 
-@class HCDDeviceDto;
-@class HCDScanResultDto;
+typedef NS_ENUM(NSUInteger, HCDPigeonDeviceRiskLevel) {
+  HCDPigeonDeviceRiskLevelLow = 0,
+  HCDPigeonDeviceRiskLevelMedium = 1,
+  HCDPigeonDeviceRiskLevelHigh = 2,
+  HCDPigeonDeviceRiskLevelUnknown = 3,
+};
 
+/// Wrapper for HCDPigeonDeviceRiskLevel to allow for nullability.
+@interface HCDPigeonDeviceRiskLevelBox : NSObject
+@property(nonatomic, assign) HCDPigeonDeviceRiskLevel value;
+- (instancetype)initWithValue:(HCDPigeonDeviceRiskLevel)value;
+@end
+
+@class HCDDeviceDto;
+@class HCDDeviceEventDto;
+
+/// Mirrors the Flutter `DetectedDevice` entity. Field documentation ensures a
+/// predictable conversion between native JSON/dictionary payloads and the Dart
+/// domain model:
+/// - `id`: MAC address or UUID string.
+/// - `name`: Human-readable device name (default to "Unknown Device").
+/// - `source`: Originating scan type; used to route updates in Dart.
+/// - `manufacturer`: Optional manufacturer string.
+/// - `ipAddress`: Optional IPv4/IPv6 string for Wi-Fi devices.
+/// - `rssi`: Received signal strength in dBm (Bluetooth only).
+/// - `isTrusted`: Whether the device is user-whitelisted.
+/// - `riskLevel`: Maps to `DeviceRiskLevel` enum.
 @interface HCDDeviceDto : NSObject
 /// `init` unavailable to enforce nonnull fields, see the `make` class method.
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)makeWithId:(NSString *)id
     name:(NSString *)name
-    manufacturer:(nullable NSString *)manufacturer
     source:(HCDPigeonScanSource)source
+    manufacturer:(nullable NSString *)manufacturer
     ipAddress:(nullable NSString *)ipAddress
     rssi:(nullable NSNumber *)rssi
-    isTrusted:(nullable NSNumber *)isTrusted
-    riskLevel:(nullable NSString *)riskLevel;
+    isTrusted:(NSNumber *)isTrusted
+    riskLevel:(nullable HCDPigeonDeviceRiskLevelBox *)riskLevel;
 @property(nonatomic, copy) NSString * id;
 @property(nonatomic, copy) NSString * name;
-@property(nonatomic, copy, nullable) NSString * manufacturer;
 @property(nonatomic, assign) HCDPigeonScanSource source;
+@property(nonatomic, copy, nullable) NSString * manufacturer;
 @property(nonatomic, copy, nullable) NSString * ipAddress;
 @property(nonatomic, strong, nullable) NSNumber * rssi;
-@property(nonatomic, strong, nullable) NSNumber * isTrusted;
-@property(nonatomic, copy, nullable) NSString * riskLevel;
+@property(nonatomic, strong) NSNumber * isTrusted;
+@property(nonatomic, strong, nullable) HCDPigeonDeviceRiskLevelBox * riskLevel;
 @end
 
-@interface HCDScanResultDto : NSObject
+/// Streaming payload delivered from native scanners. Every event represents a
+/// single discovery update so the Dart layer can surface incremental results.
+/// `eventId` is a monotonically increasing identifier per scan to help debounce
+/// duplicates; `totalDiscovered` tracks the best-effort count emitted so far.
+@interface HCDDeviceEventDto : NSObject
 /// `init` unavailable to enforce nonnull fields, see the `make` class method.
 - (instancetype)init NS_UNAVAILABLE;
 + (instancetype)makeWithSource:(HCDPigeonScanSource)source
-    devices:(NSArray<HCDDeviceDto *> *)devices;
+    device:(HCDDeviceDto *)device
+    eventId:(NSNumber *)eventId
+    totalDiscovered:(nullable NSNumber *)totalDiscovered
+    isFinal:(NSNumber *)isFinal;
 @property(nonatomic, assign) HCDPigeonScanSource source;
-@property(nonatomic, strong) NSArray<HCDDeviceDto *> * devices;
+@property(nonatomic, strong) HCDDeviceDto * device;
+@property(nonatomic, strong) NSNumber * eventId;
+@property(nonatomic, strong, nullable) NSNumber * totalDiscovered;
+@property(nonatomic, strong) NSNumber * isFinal;
 @end
 
 /// The codec used by HCDScannerHostApi.
 NSObject<FlutterMessageCodec> *HCDScannerHostApiGetCodec(void);
 
 @protocol HCDScannerHostApi
-- (void)getNetworkDevicesWithCompletion:(void (^)(NSArray<HCDDeviceDto *> *_Nullable, FlutterError *_Nullable))completion;
-- (void)getBluetoothDevicesWithCompletion:(void (^)(NSArray<HCDDeviceDto *> *_Nullable, FlutterError *_Nullable))completion;
-- (void)startScanSource:(HCDPigeonScanSource)source completion:(void (^)(FlutterError *_Nullable))completion;
-- (void)stopScanSource:(HCDPigeonScanSource)source completion:(void (^)(FlutterError *_Nullable))completion;
+- (void)startWifiScanWithCompletion:(void (^)(FlutterError *_Nullable))completion;
+- (void)stopWifiScanWithCompletion:(void (^)(FlutterError *_Nullable))completion;
+- (void)startBluetoothScanWithCompletion:(void (^)(FlutterError *_Nullable))completion;
+- (void)stopBluetoothScanWithCompletion:(void (^)(FlutterError *_Nullable))completion;
 @end
 
 extern void SetUpHCDScannerHostApi(id<FlutterBinaryMessenger> binaryMessenger, NSObject<HCDScannerHostApi> *_Nullable api);
 
-/// The codec used by HCDScannerFlutterApi.
-NSObject<FlutterMessageCodec> *HCDScannerFlutterApiGetCodec(void);
+/// The codec used by HCDScannerStreamApi.
+NSObject<FlutterMessageCodec> *HCDScannerStreamApiGetCodec(void);
 
-@interface HCDScannerFlutterApi : NSObject
+@interface HCDScannerStreamApi : NSObject
 - (instancetype)initWithBinaryMessenger:(id<FlutterBinaryMessenger>)binaryMessenger;
-- (void)onScanResultResult:(HCDScanResultDto *)result completion:(void (^)(FlutterError *_Nullable))completion;
+- (void)onDeviceEventEvent:(HCDDeviceEventDto *)event completion:(void (^)(FlutterError *_Nullable))completion;
 @end
 
 NS_ASSUME_NONNULL_END

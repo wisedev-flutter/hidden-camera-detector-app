@@ -196,14 +196,18 @@ Create `Failure` union types using `freezed` (e.g., `NetworkFailure`, `Bluetooth
 ## 4. Data Layer
 
 ### Step 4.1 — Pigeon Channel Setup
-- Define `pigeons/scanner_api.dart`.
+- Define `pigeons/scanner_api.dart` with explicit scan lifecycle calls:
+  - `startWifiScan()`, `stopWifiScan()`
+  - `startBluetoothScan()`, `stopBluetoothScan()`
+- Include a Flutter-to-native streaming channel (e.g., `ScannerApiStream`) that emits `DetectedDeviceDto` objects incrementally as native scanners discover them.
+- Document the expected JSON schema / field mapping so Dart repositories can translate incoming events into domain entities.
 - Run generator:
   ```bash
   flutter pub run pigeon --input pigeons/scanner_api.dart
   ```
 - Commit generated files.
 
-✅ **Test:** Build iOS project — ensure compilation success.
+✅ **Test:** Build iOS project — ensure compilation success and verify a stub Flutter listener receives streaming events from the generated API.
 
 ---
 
@@ -213,14 +217,24 @@ In `ios/Runner/`:
   - `ScannerPlugin.swift`
   - `MdnsScanner.swift`
   - `BluetoothScanner.swift`
+- `ScannerPlugin.swift` implements the Pigeon `HostApi` facade, wiring Flutter commands to native scanners and exposing the shared event stream back to Dart.
+- `MdnsScanner.swift` and `BluetoothScanner.swift` encapsulate platform APIs (Bonjour/CoreBluetooth). Each class checks its respective authorization status before scanning; on missing permission, immediately surface a descriptive error (see Step 4.2.1).
 - Configure permissions in `Info.plist`:
   ```
   NSLocalNetworkUsageDescription
   NSBluetoothAlwaysUsageDescription
   ```
-- Run scanning on background threads; return updates on main thread.
+- Run scanning on background threads; dispatch discovered devices to the event stream on the main thread.
 
-✅ **Test:** Run on physical iPhone → Wi-Fi scan returns mock device list.
+✅ **Test:** Run on physical iPhone → invoking `startWifiScan()` streams mocked devices in near real time; stopping the scan halts further events.
+
+---
+
+### Step 4.2.1 — Error Propagation Bridge
+- Wrap native failures (e.g., permission denied, hardware unavailable) in `FlutterError` instances with stable error codes (`PERMISSION_DENIED`, `SCAN_FAILED`, etc.).
+- Ensure the generated Dart API surfaces these errors so the repository layer can map codes to the appropriate `Failure` union variants.
+
+✅ **Test:** Simulate a denied permission → Dart repository receives `FlutterError` and maps it to the expected `Failure`.
 
 ---
 

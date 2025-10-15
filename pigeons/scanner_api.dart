@@ -18,54 +18,82 @@ enum PigeonScanSource {
   bluetooth,
 }
 
+enum PigeonDeviceRiskLevel {
+  low,
+  medium,
+  high,
+  unknown,
+}
+
+/// Mirrors the Flutter `DetectedDevice` entity. Field documentation ensures a
+/// predictable conversion between native JSON/dictionary payloads and the Dart
+/// domain model:
+/// - `id`: MAC address or UUID string.
+/// - `name`: Human-readable device name (default to "Unknown Device").
+/// - `source`: Originating scan type; used to route updates in Dart.
+/// - `manufacturer`: Optional manufacturer string.
+/// - `ipAddress`: Optional IPv4/IPv6 string for Wi-Fi devices.
+/// - `rssi`: Received signal strength in dBm (Bluetooth only).
+/// - `isTrusted`: Whether the device is user-whitelisted.
+/// - `riskLevel`: Maps to `DeviceRiskLevel` enum.
 class DeviceDto {
   DeviceDto({
     required this.id,
     required this.name,
-    this.manufacturer,
     required this.source,
+    this.manufacturer,
     this.ipAddress,
     this.rssi,
-    this.isTrusted,
+    this.isTrusted = false,
     this.riskLevel,
   });
 
   String id;
   String name;
-  String? manufacturer;
   PigeonScanSource source;
+  String? manufacturer;
   String? ipAddress;
   int? rssi;
-  bool? isTrusted;
-  String? riskLevel;
+  bool isTrusted;
+  PigeonDeviceRiskLevel? riskLevel;
 }
 
-class ScanResultDto {
-  ScanResultDto({
+/// Streaming payload delivered from native scanners. Every event represents a
+/// single discovery update so the Dart layer can surface incremental results.
+/// `eventId` is a monotonically increasing identifier per scan to help debounce
+/// duplicates; `totalDiscovered` tracks the best-effort count emitted so far.
+class DeviceEventDto {
+  DeviceEventDto({
     required this.source,
-    required this.devices,
+    required this.device,
+    required this.eventId,
+    this.totalDiscovered,
+    this.isFinal = false,
   });
 
   PigeonScanSource source;
-  List<DeviceDto?> devices;
+  DeviceDto device;
+  int eventId;
+  int? totalDiscovered;
+  bool isFinal;
 }
 
 @HostApi()
 abstract class ScannerHostApi {
   @async
-  List<DeviceDto?> getNetworkDevices();
+  void startWifiScan();
 
   @async
-  List<DeviceDto?> getBluetoothDevices();
+  void stopWifiScan();
 
   @async
-  void startScan(PigeonScanSource source);
+  void startBluetoothScan();
 
   @async
-  void stopScan(PigeonScanSource source);
+  void stopBluetoothScan();
 }
 
 @FlutterApi()
-abstract class ScannerFlutterApi {
-  void onScanResult(ScanResultDto result);
+abstract class ScannerStreamApi {
+  void onDeviceEvent(DeviceEventDto event);
 }

@@ -22,15 +22,33 @@ enum PigeonScanSource {
   bluetooth,
 }
 
+enum PigeonDeviceRiskLevel {
+  low,
+  medium,
+  high,
+  unknown,
+}
+
+/// Mirrors the Flutter `DetectedDevice` entity. Field documentation ensures a
+/// predictable conversion between native JSON/dictionary payloads and the Dart
+/// domain model:
+/// - `id`: MAC address or UUID string.
+/// - `name`: Human-readable device name (default to "Unknown Device").
+/// - `source`: Originating scan type; used to route updates in Dart.
+/// - `manufacturer`: Optional manufacturer string.
+/// - `ipAddress`: Optional IPv4/IPv6 string for Wi-Fi devices.
+/// - `rssi`: Received signal strength in dBm (Bluetooth only).
+/// - `isTrusted`: Whether the device is user-whitelisted.
+/// - `riskLevel`: Maps to `DeviceRiskLevel` enum.
 class DeviceDto {
   DeviceDto({
     required this.id,
     required this.name,
-    this.manufacturer,
     required this.source,
+    this.manufacturer,
     this.ipAddress,
     this.rssi,
-    this.isTrusted,
+    required this.isTrusted,
     this.riskLevel,
   });
 
@@ -38,28 +56,28 @@ class DeviceDto {
 
   String name;
 
-  String? manufacturer;
-
   PigeonScanSource source;
+
+  String? manufacturer;
 
   String? ipAddress;
 
   int? rssi;
 
-  bool? isTrusted;
+  bool isTrusted;
 
-  String? riskLevel;
+  PigeonDeviceRiskLevel? riskLevel;
 
   Object encode() {
     return <Object?>[
       id,
       name,
-      manufacturer,
       source.index,
+      manufacturer,
       ipAddress,
       rssi,
       isTrusted,
-      riskLevel,
+      riskLevel?.index,
     ];
   }
 
@@ -68,62 +86,60 @@ class DeviceDto {
     return DeviceDto(
       id: result[0]! as String,
       name: result[1]! as String,
-      manufacturer: result[2] as String?,
-      source: PigeonScanSource.values[result[3]! as int],
+      source: PigeonScanSource.values[result[2]! as int],
+      manufacturer: result[3] as String?,
       ipAddress: result[4] as String?,
       rssi: result[5] as int?,
-      isTrusted: result[6] as bool?,
-      riskLevel: result[7] as String?,
+      isTrusted: result[6]! as bool,
+      riskLevel: result[7] != null
+          ? PigeonDeviceRiskLevel.values[result[7]! as int]
+          : null,
     );
   }
 }
 
-class ScanResultDto {
-  ScanResultDto({
+/// Streaming payload delivered from native scanners. Every event represents a
+/// single discovery update so the Dart layer can surface incremental results.
+/// `eventId` is a monotonically increasing identifier per scan to help debounce
+/// duplicates; `totalDiscovered` tracks the best-effort count emitted so far.
+class DeviceEventDto {
+  DeviceEventDto({
     required this.source,
-    required this.devices,
+    required this.device,
+    required this.eventId,
+    this.totalDiscovered,
+    required this.isFinal,
   });
 
   PigeonScanSource source;
 
-  List<DeviceDto?> devices;
+  DeviceDto device;
+
+  int eventId;
+
+  int? totalDiscovered;
+
+  bool isFinal;
 
   Object encode() {
     return <Object?>[
       source.index,
-      devices,
+      device.encode(),
+      eventId,
+      totalDiscovered,
+      isFinal,
     ];
   }
 
-  static ScanResultDto decode(Object result) {
+  static DeviceEventDto decode(Object result) {
     result as List<Object?>;
-    return ScanResultDto(
+    return DeviceEventDto(
       source: PigeonScanSource.values[result[0]! as int],
-      devices: (result[1] as List<Object?>?)!.cast<DeviceDto?>(),
+      device: DeviceDto.decode(result[1]! as List<Object?>),
+      eventId: result[2]! as int,
+      totalDiscovered: result[3] as int?,
+      isFinal: result[4]! as bool,
     );
-  }
-}
-
-class _ScannerHostApiCodec extends StandardMessageCodec {
-  const _ScannerHostApiCodec();
-  @override
-  void writeValue(WriteBuffer buffer, Object? value) {
-    if (value is DeviceDto) {
-      buffer.putUint8(128);
-      writeValue(buffer, value.encode());
-    } else {
-      super.writeValue(buffer, value);
-    }
-  }
-
-  @override
-  Object? readValueOfType(int type, ReadBuffer buffer) {
-    switch (type) {
-      case 128: 
-        return DeviceDto.decode(readValue(buffer)!);
-      default:
-        return super.readValueOfType(type, buffer);
-    }
   }
 }
 
@@ -135,68 +151,14 @@ class ScannerHostApi {
       : _binaryMessenger = binaryMessenger;
   final BinaryMessenger? _binaryMessenger;
 
-  static const MessageCodec<Object?> codec = _ScannerHostApiCodec();
+  static const MessageCodec<Object?> codec = StandardMessageCodec();
 
-  Future<List<DeviceDto?>> getNetworkDevices() async {
+  Future<void> startWifiScan() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.getNetworkDevices', codec,
+        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startWifiScan', codec,
         binaryMessenger: _binaryMessenger);
     final List<Object?>? replyList =
         await channel.send(null) as List<Object?>?;
-    if (replyList == null) {
-      throw PlatformException(
-        code: 'channel-error',
-        message: 'Unable to establish connection on channel.',
-      );
-    } else if (replyList.length > 1) {
-      throw PlatformException(
-        code: replyList[0]! as String,
-        message: replyList[1] as String?,
-        details: replyList[2],
-      );
-    } else if (replyList[0] == null) {
-      throw PlatformException(
-        code: 'null-error',
-        message: 'Host platform returned null value for non-null return value.',
-      );
-    } else {
-      return (replyList[0] as List<Object?>?)!.cast<DeviceDto?>();
-    }
-  }
-
-  Future<List<DeviceDto?>> getBluetoothDevices() async {
-    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.getBluetoothDevices', codec,
-        binaryMessenger: _binaryMessenger);
-    final List<Object?>? replyList =
-        await channel.send(null) as List<Object?>?;
-    if (replyList == null) {
-      throw PlatformException(
-        code: 'channel-error',
-        message: 'Unable to establish connection on channel.',
-      );
-    } else if (replyList.length > 1) {
-      throw PlatformException(
-        code: replyList[0]! as String,
-        message: replyList[1] as String?,
-        details: replyList[2],
-      );
-    } else if (replyList[0] == null) {
-      throw PlatformException(
-        code: 'null-error',
-        message: 'Host platform returned null value for non-null return value.',
-      );
-    } else {
-      return (replyList[0] as List<Object?>?)!.cast<DeviceDto?>();
-    }
-  }
-
-  Future<void> startScan(PigeonScanSource arg_source) async {
-    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startScan', codec,
-        binaryMessenger: _binaryMessenger);
-    final List<Object?>? replyList =
-        await channel.send(<Object?>[arg_source.index]) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(
         code: 'channel-error',
@@ -213,12 +175,56 @@ class ScannerHostApi {
     }
   }
 
-  Future<void> stopScan(PigeonScanSource arg_source) async {
+  Future<void> stopWifiScan() async {
     final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopScan', codec,
+        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopWifiScan', codec,
         binaryMessenger: _binaryMessenger);
     final List<Object?>? replyList =
-        await channel.send(<Object?>[arg_source.index]) as List<Object?>?;
+        await channel.send(null) as List<Object?>?;
+    if (replyList == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+      );
+    } else if (replyList.length > 1) {
+      throw PlatformException(
+        code: replyList[0]! as String,
+        message: replyList[1] as String?,
+        details: replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> startBluetoothScan() async {
+    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.startBluetoothScan', codec,
+        binaryMessenger: _binaryMessenger);
+    final List<Object?>? replyList =
+        await channel.send(null) as List<Object?>?;
+    if (replyList == null) {
+      throw PlatformException(
+        code: 'channel-error',
+        message: 'Unable to establish connection on channel.',
+      );
+    } else if (replyList.length > 1) {
+      throw PlatformException(
+        code: replyList[0]! as String,
+        message: replyList[1] as String?,
+        details: replyList[2],
+      );
+    } else {
+      return;
+    }
+  }
+
+  Future<void> stopBluetoothScan() async {
+    final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.hidden_camera_detector.ScannerHostApi.stopBluetoothScan', codec,
+        binaryMessenger: _binaryMessenger);
+    final List<Object?>? replyList =
+        await channel.send(null) as List<Object?>?;
     if (replyList == null) {
       throw PlatformException(
         code: 'channel-error',
@@ -236,14 +242,14 @@ class ScannerHostApi {
   }
 }
 
-class _ScannerFlutterApiCodec extends StandardMessageCodec {
-  const _ScannerFlutterApiCodec();
+class _ScannerStreamApiCodec extends StandardMessageCodec {
+  const _ScannerStreamApiCodec();
   @override
   void writeValue(WriteBuffer buffer, Object? value) {
     if (value is DeviceDto) {
       buffer.putUint8(128);
       writeValue(buffer, value.encode());
-    } else if (value is ScanResultDto) {
+    } else if (value is DeviceEventDto) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
     } else {
@@ -257,35 +263,35 @@ class _ScannerFlutterApiCodec extends StandardMessageCodec {
       case 128: 
         return DeviceDto.decode(readValue(buffer)!);
       case 129: 
-        return ScanResultDto.decode(readValue(buffer)!);
+        return DeviceEventDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
   }
 }
 
-abstract class ScannerFlutterApi {
-  static const MessageCodec<Object?> codec = _ScannerFlutterApiCodec();
+abstract class ScannerStreamApi {
+  static const MessageCodec<Object?> codec = _ScannerStreamApiCodec();
 
-  void onScanResult(ScanResultDto result);
+  void onDeviceEvent(DeviceEventDto event);
 
-  static void setup(ScannerFlutterApi? api, {BinaryMessenger? binaryMessenger}) {
+  static void setup(ScannerStreamApi? api, {BinaryMessenger? binaryMessenger}) {
     {
       final BasicMessageChannel<Object?> channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.hidden_camera_detector.ScannerFlutterApi.onScanResult', codec,
+          'dev.flutter.pigeon.hidden_camera_detector.ScannerStreamApi.onDeviceEvent', codec,
           binaryMessenger: binaryMessenger);
       if (api == null) {
         channel.setMessageHandler(null);
       } else {
         channel.setMessageHandler((Object? message) async {
           assert(message != null,
-          'Argument for dev.flutter.pigeon.hidden_camera_detector.ScannerFlutterApi.onScanResult was null.');
+          'Argument for dev.flutter.pigeon.hidden_camera_detector.ScannerStreamApi.onDeviceEvent was null.');
           final List<Object?> args = (message as List<Object?>?)!;
-          final ScanResultDto? arg_result = (args[0] as ScanResultDto?);
-          assert(arg_result != null,
-              'Argument for dev.flutter.pigeon.hidden_camera_detector.ScannerFlutterApi.onScanResult was null, expected non-null ScanResultDto.');
+          final DeviceEventDto? arg_event = (args[0] as DeviceEventDto?);
+          assert(arg_event != null,
+              'Argument for dev.flutter.pigeon.hidden_camera_detector.ScannerStreamApi.onDeviceEvent was null, expected non-null DeviceEventDto.');
           try {
-            api.onScanResult(arg_result!);
+            api.onDeviceEvent(arg_event!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

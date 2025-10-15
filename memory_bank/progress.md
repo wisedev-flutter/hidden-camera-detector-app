@@ -61,5 +61,6 @@
 
 ## 2025-10-14 — Step 4.1 (Pigeon Setup)
 - Added `pigeon` dev dependency and created `pigeons/scanner_api.dart` describing host/flutter APIs for scan management.
+- Refined the API to expose explicit `start/stop` methods per scan type plus a `ScannerStreamApi` Flutter channel that streams `DeviceEventDto` payloads including incremental totals and risk metadata.
 - Generated Dart bindings (`lib/src/pigeon/scanner_api.g.dart`) and iOS Obj-C stubs (`ios/Runner/Pigeons/ScannerApi.g.{h,m}`) via `flutter pub run pigeon --input pigeons/scanner_api.dart`.
-- Established Scan DTOs and callback structure to be hooked up by native implementations in subsequent steps.
+- Documented DTO field mapping and aligned enums (`PigeonDeviceRiskLevel`, `PigeonScanSource`) to the domain layer for consistent serialization ahead of native integration.

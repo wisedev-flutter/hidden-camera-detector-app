@@ -28,7 +28,7 @@
 
 ## Data Layer
 - `lib/src/data/`: Planned home for repositories, data sources, and Pigeon integrations referencing Swift native code.
-- `pigeons/scanner_api.dart`: Source definition for Pigeon-generated messaging between Flutter and native scanners; outputs to `lib/src/pigeon/scanner_api.g.dart` and `ios/Runner/Pigeons/ScannerApi.g.{h,m}`.
+- `pigeons/scanner_api.dart`: Defines lifecycle methods (`start/stop` per scan type) and the `ScannerStreamApi` channel that pushes `DeviceEventDto` updates into Flutter; generates bindings at `lib/src/pigeon/scanner_api.g.dart` and `ios/Runner/Pigeons/ScannerApi.g.{h,m}`.
 
 ## Shared Utilities
 - `lib/core/`: Intended for shared utilities (constants, error models, logging adapters). A `.gitkeep` maintains the folder until populated.
