@@ -77,6 +77,11 @@
 - Added `PigeonDeviceScanRepository` to translate Pigeon `DeviceEventDto` payloads into domain entities, accumulate per-source device lists, and map `PlatformException` codes into the appropriate `Failure` variants.
 - Introduced targeted unit tests (`test/data/pigeon_device_scan_repository_test.dart`) that mock the Pigeon channels to verify permission errors surface as `NetworkFailure` and that Wi-Fi events hydrate the repository stream correctly.
 
+## 2025-10-14 — Step 4.4.1 (RevenueCat Prereqs & Paywall Strategy)
+- Enabled the iOS **In-App Purchase** capability in `Runner.xcodeproj` so sandbox builds can load RevenueCat paywalls.
+- Added `purchases_flutter`/`purchases_ui_flutter` dependencies and refactored `PaywallScreen` to launch the native RevenueCat paywall via `RevenueCatUI.presentPaywall`, replacing the bespoke offer tiles.
+- Updated the paywall UI copy to highlight RevenueCat-managed plans while keeping “continue without subscribing” and legal links intact for later integration.
+
 ## 2025-10-14 — Step 4.3 (Permissions)
 - Created a `PermissionCoordinator` that triggers the native Wi-Fi scan to surface the Local Network dialog, requests Bluetooth access on-demand, and routes permanently denied states to the iOS Settings screen.
 - Updated `OnboardingScreen` to rely on the new coordinator, limiting onboarding to the Local Network prompt and providing actionable snackbars (with “Open Settings” when required).

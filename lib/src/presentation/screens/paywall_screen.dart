@@ -1,7 +1,10 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
+
 import '../theme/theme_extensions.dart';
 import '../widgets/device_result_card.dart';
 
@@ -31,31 +34,54 @@ class PaywallScreen extends StatelessWidget {
     ),
   ];
 
-  static const _offers = [
-    _Offer(
-      id: 'weekly_premium',
-      title: 'Weekly',
-      subtitle: 'Best for short trips',
-      price: '\$3.99/week',
-      badge: 'Popular',
-    ),
-    _Offer(
-      id: 'yearly_premium',
-      title: 'Yearly',
-      subtitle: 'Two months free, billed annually',
-      price: '\$79.99/year',
-      badge: 'Best Value',
-    ),
-  ];
-
   void _onContinueWithoutSubscription(BuildContext context) {
     context.pop();
   }
 
-  void _onPurchaseOffer(BuildContext context, _Offer offer) {
+  void _showSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Purchase flow for ${offer.title} coming soon.')),
+      SnackBar(content: Text(message)),
     );
+  }
+
+  Future<void> _presentRevenueCatPaywall(BuildContext context) async {
+    try {
+      final result = await RevenueCatUI.presentPaywall(
+        displayCloseButton: true,
+      );
+      if (!context.mounted) return;
+      _handlePaywallResult(context, result);
+    } on PlatformException catch (error) {
+      if (!context.mounted) return;
+      _showSnackBar(
+        context,
+        'Paywall unavailable until RevenueCat configuration is completed: ${error.message}',
+      );
+    }
+  }
+
+  void _handlePaywallResult(BuildContext context, PaywallResult result) {
+    switch (result) {
+      case PaywallResult.purchased:
+      case PaywallResult.restored:
+        _showSnackBar(
+          context,
+          'Thanks! Premium access will activate once RevenueCat integration is live.',
+        );
+        break;
+      case PaywallResult.cancelled:
+        _showSnackBar(context, 'Purchase cancelled.');
+        break;
+      case PaywallResult.notPresented:
+        _showSnackBar(context, 'Paywall was not presented.');
+        break;
+      case PaywallResult.error:
+        _showSnackBar(
+          context,
+          'Something went wrong while presenting the paywall.',
+        );
+        break;
+    }
   }
 
   @override
@@ -95,22 +121,38 @@ class PaywallScreen extends StatelessWidget {
             'Choose your plan',
             style: textStyles.sectionTitle.copyWith(color: scheme.onSurface),
           ),
-          const SizedBox(height: 12),
-          ..._offers.map(
-            (offer) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _OfferTile(
-                offer: offer,
-                onTap: () => _onPurchaseOffer(context, offer),
-              ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: const [
+                _PlanHighlight(
+                  icon: Icons.local_offer_rounded,
+                  title: 'Live offers from RevenueCat',
+                  subtitle:
+                      'Weekly and yearly plans load directly from the dashboard once configured.',
+                ),
+                SizedBox(height: 12),
+                _PlanHighlight(
+                  icon: Icons.autorenew_rounded,
+                  title: 'Manage subscriptions easily',
+                  subtitle:
+                      'Users can upgrade, downgrade, or cancel via the App Store at any time.',
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () => _onPurchaseOffer(context, _offers.first),
-            child: const Text('Unlock Premium'),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _presentRevenueCatPaywall(context),
+            icon: const Icon(Icons.shopping_bag_outlined),
+            label: const Text('See premium plans'),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           TextButton(
             onPressed: () => _onContinueWithoutSubscription(context),
             child: const Text('Continue without subscribing'),
@@ -133,6 +175,51 @@ class PaywallScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PlanHighlight extends StatelessWidget {
+  const _PlanHighlight({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textStyles = context.appTextStyles;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: scheme.primary),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: textStyles.sectionTitle.copyWith(
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: textStyles.supporting.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -211,100 +298,4 @@ class _BlurredResults extends StatelessWidget {
       ),
     );
   }
-}
-
-class _OfferTile extends StatelessWidget {
-  const _OfferTile({required this.offer, required this.onTap});
-
-  final _Offer offer;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final textStyles = context.appTextStyles;
-
-    return Material(
-      color: scheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          child: Row(
-            children: [
-              Icon(Icons.shield_rounded, color: scheme.primary),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          offer.title,
-                          style: textStyles.sectionTitle.copyWith(
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (offer.badge != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: scheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              offer.badge!,
-                              style: textStyles.badge.copyWith(
-                                color: scheme.primary,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      offer.subtitle,
-                      style: textStyles.supporting.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                offer.price,
-                style: textStyles.sectionTitle.copyWith(
-                  color: scheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Offer {
-  const _Offer({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.price,
-    this.badge,
-  });
-
-  final String id;
-  final String title;
-  final String subtitle;
-  final String price;
-  final String? badge;
 }

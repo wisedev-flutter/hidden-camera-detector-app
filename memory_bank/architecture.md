@@ -16,6 +16,7 @@
 - `lib/src/presentation/permissions/permission_coordinator.dart`: Centralises Local Network/Bluetooth permission requests, surfacing SnackBar guidance and deep links back to iOS settings when access is denied.
 - `lib/src/presentation/screens/dashboard_screen.dart`: Bottom-navigation dashboard that centralises Wi-Fi results, IR guidance, and premium-gated Bluetooth scanning.
 - `lib/src/presentation/screens/paywall_screen.dart`: Paywall experience with blurred scan preview, mock offerings, and unlock/continue actions.
+- `lib/src/presentation/screens/paywall_screen.dart`: Paywall wrapper that highlights locked results and delegates purchases to RevenueCat’s pre-built modal via `RevenueCatUI.presentPaywall`.
 - `lib/src/presentation/screens/settings_screen.dart`: Settings hub exposing restore purchases, clear data, legal links, and app version metadata.
 - `lib/src/presentation/theme/app_theme.dart`: Centralized light/dark `ThemeData` definitions applied app-wide.
 - `lib/src/presentation/theme/theme_extensions.dart`: Custom theme extensions (`AppColors`, `AppTextStyles`) plus convenience getters for use throughout the UI.
@@ -39,10 +40,12 @@
 
 ## Environment & Configuration
 - `pubspec.yaml`: Includes `flutter_launcher_icons`, `flutter_native_splash`, and runtime deps `go_router`, `permission_handler`, `shared_preferences`, `package_info_plus`, `url_launcher`, along with codegen tooling (`freezed_annotation`, `freezed`, `build_runner`).
+- `pubspec.yaml`: Includes monetization dependencies `purchases_flutter` and `purchases_ui_flutter` ready for the RevenueCat data layer.
 - `assets/branding/app_icon.png`, `splash_icon.png`: Temporary solid-color assets consumed by icon/splash generators.
 
 ## iOS Project Configuration
 - `ios/Runner.xcodeproj/project.pbxproj`: Uses Flutter’s default Debug/Profile/Release build configurations (iOS 14.0 min target) without flavor-specific overrides.
 - `ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`: Single shared scheme aligned with the standard configurations.
 - `ios/Runner/Info.plist`: Includes Local Network and Bluetooth usage descriptions required for scanner permissions.
+- `ios/Runner.xcodeproj/project.pbxproj`: Enables the In-App Purchase capability so RevenueCat paywalls can transact in sandbox and production.
 - Generated icon/splash assets reside under `ios/Runner/Assets.xcassets` (automatically updated by tooling).
