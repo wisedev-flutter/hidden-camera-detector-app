@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../navigation/app_route.dart';
+import '../permissions/permission_coordinator.dart';
 import '../theme/theme_extensions.dart';
 import '../widgets/device_result_card.dart';
 import '../widgets/scan_button.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key, required this.isPremium});
+  const DashboardScreen({
+    super.key,
+    required this.isPremium,
+    required this.permissionCoordinator,
+  });
 
   final bool isPremium;
+  final PermissionCoordinator permissionCoordinator;
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -23,7 +29,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final pages = <Widget>[
       _WifiTab(isPremium: widget.isPremium),
       const _InfraredTab(),
-      _BluetoothTab(isPremium: widget.isPremium),
+      _BluetoothTab(
+        isPremium: widget.isPremium,
+        permissions: widget.permissionCoordinator,
+      ),
     ];
 
     return Scaffold(
@@ -193,9 +202,13 @@ class _InfraredTab extends StatelessWidget {
 }
 
 class _BluetoothTab extends StatelessWidget {
-  const _BluetoothTab({required this.isPremium});
+  const _BluetoothTab({
+    required this.isPremium,
+    required this.permissions,
+  });
 
   final bool isPremium;
+  final PermissionCoordinator permissions;
 
   static const _bluetoothDevices = [
     DeviceResultDisplayData(
@@ -235,7 +248,7 @@ class _BluetoothTab extends StatelessWidget {
           type: ScanType.bluetooth,
           isLocked: !isPremium,
           onPressed: isPremium
-              ? () => context.go(AppRoute.scanBluetooth.path)
+              ? () => _handleBluetoothScan(context)
               : () => context.go(AppRoute.paywall.path),
         ),
         const SizedBox(height: 24),
@@ -264,6 +277,37 @@ class _BluetoothTab extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _handleBluetoothScan(BuildContext context) async {
+    final outcome = await permissions.requestBluetooth();
+    if (outcome == PermissionOutcome.granted) {
+      if (!context.mounted) return;
+      context.go(AppRoute.scanBluetooth.path);
+      return;
+    }
+
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+
+    final message = outcome == PermissionOutcome.permanentlyDenied
+        ? 'Bluetooth access has been disabled. Enable it in Settings to scan for nearby devices.'
+        : 'Bluetooth access is required to detect nearby devices.';
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: outcome == PermissionOutcome.permanentlyDenied
+            ? SnackBarAction(
+                label: 'Open Settings',
+                onPressed: () {
+                  permissions.openSettings();
+                },
+              )
+            : null,
+      ),
     );
   }
 }

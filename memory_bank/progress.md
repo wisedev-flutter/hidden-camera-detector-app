@@ -64,3 +64,21 @@
 - Refined the API to expose explicit `start/stop` methods per scan type plus a `ScannerStreamApi` Flutter channel that streams `DeviceEventDto` payloads including incremental totals and risk metadata.
 - Generated Dart bindings (`lib/src/pigeon/scanner_api.g.dart`) and iOS Obj-C stubs (`ios/Runner/Pigeons/ScannerApi.g.{h,m}`) via `flutter pub run pigeon --input pigeons/scanner_api.dart`.
 - Documented DTO field mapping and aligned enums (`PigeonDeviceRiskLevel`, `PigeonScanSource`) to the domain layer for consistent serialization ahead of native integration.
+- Added a Flutter unit test (`test/pigeon/scanner_api_test.dart`) that mocks the host channels and simulates stream events to verify the Pigeon interface wiring end-to-end.
+
+## 2025-10-14 — Step 4.2 (Native iOS Implementation)
+- Registered a dedicated `ScannerPlugin` inside `AppDelegate.swift` that wires the generated `HCDScannerHostApi` to mock native scanners and shares a single `HCDScannerStreamApi` back to Flutter.
+- Implemented `MdnsScanner.swift` and `BluetoothScanner.swift` facades: they guard against missing permissions, emit incremental mock devices via timers, and send terminal events when scans complete or are stopped.
+- Added Info.plist usage descriptions for Local Network and Bluetooth access to satisfy App Store review and runtime permission prompts.
+- Validated the wiring with `flutter analyze` and the targeted `scanner_api_test.dart` to ensure the host/stream channels remain functional after the native integration.
+
+## 2025-10-14 — Step 4.2.1 (Error Propagation Bridge)
+- Reworked the domain repository contracts to stream `Either<Failure, List<DetectedDevice>>` results, aligning with the streaming scanner architecture.
+- Added `PigeonDeviceScanRepository` to translate Pigeon `DeviceEventDto` payloads into domain entities, accumulate per-source device lists, and map `PlatformException` codes into the appropriate `Failure` variants.
+- Introduced targeted unit tests (`test/data/pigeon_device_scan_repository_test.dart`) that mock the Pigeon channels to verify permission errors surface as `NetworkFailure` and that Wi-Fi events hydrate the repository stream correctly.
+
+## 2025-10-14 — Step 4.3 (Permissions)
+- Created a `PermissionCoordinator` that triggers the native Wi-Fi scan to surface the Local Network dialog, requests Bluetooth access on-demand, and routes permanently denied states to the iOS Settings screen.
+- Updated `OnboardingScreen` to rely on the new coordinator, limiting onboarding to the Local Network prompt and providing actionable snackbars (with “Open Settings” when required).
+- Routed premium Bluetooth scans through the coordinator in the dashboard so on-demand requests show user-friendly messaging before navigation.
+- Added widget coverage (`test/presentation/onboarding/onboarding_screen_test.dart`) verifying denied and permanently denied flows display the correct guidance and settings shortcut.

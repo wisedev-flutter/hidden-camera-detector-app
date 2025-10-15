@@ -13,6 +13,7 @@
 - `lib/src/presentation/widgets/device_result_card.dart`: Displays device metadata, risk status, premium gating overlay, and integrates the proximity indicator.
 - `lib/src/presentation/widgets/proximity_indicator.dart`: Converts RSSI readings into user-friendly signal strength feedback for Bluetooth results.
 - `lib/src/presentation/onboarding/onboarding_storage.dart`: SharedPreferences wrapper storing onboarding completion.
+- `lib/src/presentation/permissions/permission_coordinator.dart`: Centralises Local Network/Bluetooth permission requests, surfacing SnackBar guidance and deep links back to iOS settings when access is denied.
 - `lib/src/presentation/screens/dashboard_screen.dart`: Bottom-navigation dashboard that centralises Wi-Fi results, IR guidance, and premium-gated Bluetooth scanning.
 - `lib/src/presentation/screens/paywall_screen.dart`: Paywall experience with blurred scan preview, mock offerings, and unlock/continue actions.
 - `lib/src/presentation/screens/settings_screen.dart`: Settings hub exposing restore purchases, clear data, legal links, and app version metadata.
@@ -29,6 +30,8 @@
 ## Data Layer
 - `lib/src/data/`: Planned home for repositories, data sources, and Pigeon integrations referencing Swift native code.
 - `pigeons/scanner_api.dart`: Defines lifecycle methods (`start/stop` per scan type) and the `ScannerStreamApi` channel that pushes `DeviceEventDto` updates into Flutter; generates bindings at `lib/src/pigeon/scanner_api.g.dart` and `ios/Runner/Pigeons/ScannerApi.g.{h,m}`.
+- `ios/Runner/ScannerPlugin.swift`, `MdnsScanner.swift`, `BluetoothScanner.swift`: Native facade + mock scanners that enforce permission checks, stream incremental results, and provide a drop-in bridge for future mDNS/CoreBluetooth implementations.
+- `lib/src/data/repositories/pigeon_device_scan_repository.dart`: Flutter-side repository that listens to the Pigeon stream, accumulates devices per source, and maps `PlatformException` codes to domain `Failure` types for the use cases.
 
 ## Shared Utilities
 - `lib/core/`: Intended for shared utilities (constants, error models, logging adapters). A `.gitkeep` maintains the folder until populated.
@@ -41,4 +44,5 @@
 ## iOS Project Configuration
 - `ios/Runner.xcodeproj/project.pbxproj`: Uses Flutter’s default Debug/Profile/Release build configurations (iOS 14.0 min target) without flavor-specific overrides.
 - `ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme`: Single shared scheme aligned with the standard configurations.
+- `ios/Runner/Info.plist`: Includes Local Network and Bluetooth usage descriptions required for scanner permissions.
 - Generated icon/splash assets reside under `ios/Runner/Assets.xcassets` (automatically updated by tooling).

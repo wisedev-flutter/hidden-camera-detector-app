@@ -238,27 +238,43 @@ In `ios/Runner/`:
 
 ---
 
-### Step 4.3 — RevenueCat Integration
-- Add `purchases_flutter` SDK.
-- Initialize in app startup.
-- Auto-restore subscriptions.
 
-✅ **Test:** Purchase + restore flows work using sandbox test accounts.
+### Step 4.3 — Permissions
+- Enforce the clarified iOS permission flow:
+  - Onboarding requests only Local Network access, priming the user with the App Store–approved copy.
+  - Bluetooth permissions (`NSBluetoothAlwaysUsageDescription`, `Permission.bluetoothScan`, etc.) are requested lazily the first time a Bluetooth scan is initiated.
+  - Location permission is excluded in V1.
+- Build UI affordances for denied and permanently denied states, including deep links to open iOS Settings when needed.
+
+✅ **Test:** Denying Local Network or Bluetooth shows the appropriate limitation copy; permanently denied permissions surface a “Open Settings” CTA that launches `openAppSettings()`.
 
 ---
 
-### Step 4.4 — Permissions
-- Use `permission_handler` for all permissions.
-- Request on demand during onboarding/scan.
+### Step 4.4.1 — RevenueCat Prerequisites & Paywall Strategy
+- Enable the **In-App Purchase** capability for the Runner target in Xcode (Signing & Capabilities) before building or testing monetization flows.
+- Adopt RevenueCat’s `purchases_ui_flutter` package for the paywall experience (e.g., `PaywallView`/`presentPaywallIfNeeded`) so product fetching, display, and purchase handling are delegated to RevenueCat.
+- Update Step 2.6 to invoke the pre-built paywall component and only retain bespoke UI elements that wrap or frame the RevenueCat view (e.g., onboarding context, blur, copy).
+- Document any design requirements that would force a fully custom paywall so the team can reassess before diverging from the pre-built tooling.
 
-✅ **Test:** Deny → app shows message.  
-Grant → scan proceeds.
+✅ **Test:** Integrate RevenueCat’s sample offerings and confirm `PaywallView` renders in the paywall screen with products visible; verify dismissal routes users back to the appropriate screen.
+
+---
+
+### Step 4.4.2 — RevenueCat Integration
+- Add `purchases_flutter` and wrap it in a `RevenueCatDataSource` responsible for offerings, purchases, restores, and `CustomerInfo` updates.
+- Configure RevenueCat once during app bootstrap via `Purchases.configure(PurchasesConfiguration(APPLE_API_KEY))` after enabling debug logging for development builds.
+- Implement `SubscriptionRepository` with the new data source so domain use cases remain UI-agnostic. Ensure Riverpod (or equivalent) providers consume this repository for subscription status and product listings.
+- Surface `Purchases.customerInfoStream` through the repository so the subscription provider reacts to upgrades, restores, or expirations in real time.
+- Run an auto-restore flow at startup that consumes the latest `CustomerInfo` and updates the central premium state provider before the UI renders.
+
+✅ **Test:** Mock the data source to confirm repository methods surface the correct domain results, and verify auto-restore plus the customer-info stream update the premium provider on startup. Sandbox purchase/restore should toggle premium UI paths without manual refresh.
 
 ---
 
 ### Step 4.5 — Logging & Diagnostics
 - Add `logger` package for dev logging.
 - (Optional) Add Crashlytics/Sentry (with ATT prompt if needed).
+- Enable verbose RevenueCat logging in development via `Purchases.setLogLevel(LogLevel.debug)` before configuring the SDK to simplify sandbox diagnostics.
 
 ✅ **Test:** Verify logs only appear in debug builds.
 
@@ -387,3 +403,9 @@ Profile using Flutter DevTools — all metrics within limits.
 **Document Maintainer:** Lead iOS Developer  
 **Last Updated:** 2025-10-14  
 **Approved By:** Project Technical Lead
+
+---
+
+### Future Considerations
+- Swap `context.go` for `context.push`/`pop` on drill-down routes so iOS users regain the native swipe-back gesture once the navigation audit is complete.
+- Trigger the true Local Network permission dialog by wiring the production mDNS/CoreBluetooth scanners; the current mock flow only validates denial messaging.

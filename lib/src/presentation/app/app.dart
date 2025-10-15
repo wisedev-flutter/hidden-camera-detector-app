@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../navigation/app_router.dart';
 import '../onboarding/onboarding_storage.dart';
+import '../permissions/permission_coordinator.dart';
 import '../theme/app_theme.dart';
 
 class HiddenCameraDetectorApp extends StatefulWidget {
@@ -20,6 +21,7 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
   late final ValueNotifier<bool> _premiumNotifier;
   late final AppRouter _appRouter;
   final OnboardingStorage _onboardingStorage = const OnboardingStorage();
+  final PermissionCoordinator _permissionCoordinator = const PermissionCoordinator();
 
   @override
   void initState() {
@@ -48,6 +50,7 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
         _premiumNotifier.value = false;
         _onboardingCompletedNotifier.value = false;
       },
+      permissionCoordinator: _permissionCoordinator,
       refreshListenables: [_premiumNotifier, _onboardingCompletedNotifier],
     );
 

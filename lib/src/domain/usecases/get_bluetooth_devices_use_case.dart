@@ -9,7 +9,7 @@ class GetBluetoothDevicesUseCase {
 
   final DeviceScanRepository _repository;
 
-  Future<Either<Failure, List<DetectedDevice>>> call() {
-    return _repository.getBluetoothDevices();
+  Stream<Either<Failure, List<DetectedDevice>>> call() {
+    return _repository.watchBluetoothDevices();
   }
 }

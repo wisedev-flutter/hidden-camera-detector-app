@@ -28,6 +28,10 @@
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>
 		<string>Main</string>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>Hidden Camera Detector uses your local network to discover nearby devices.</string>
+		<key>NSBluetoothAlwaysUsageDescription</key>
+		<string>Hidden Camera Detector uses Bluetooth to locate nearby devices more accurately.</string>
 		<key>UISupportedInterfaceOrientations</key>
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>

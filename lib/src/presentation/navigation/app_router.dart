@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../permissions/permission_coordinator.dart';
 import '../screens/bluetooth_scan_screen.dart';
 import '../screens/dashboard_screen.dart';
 import '../screens/infrared_scan_screen.dart';
@@ -27,19 +28,22 @@ class AppRouter {
     required OnboardingCompletionUpdater onboardingCompletionUpdater,
     required RestorePurchasesHandler restorePurchasesHandler,
     required ClearAllDataHandler clearAllDataHandler,
+    required PermissionCoordinator permissionCoordinator,
     List<Listenable> refreshListenables = const [],
   }) : _premiumAccessResolver = premiumAccessResolver,
-       _onboardingCompletionResolver = onboardingCompletionResolver,
-       _onboardingCompletionUpdater = onboardingCompletionUpdater,
-       _restorePurchasesHandler = restorePurchasesHandler,
-       _clearAllDataHandler = clearAllDataHandler,
-       _refreshListenables = refreshListenables;
+      _onboardingCompletionResolver = onboardingCompletionResolver,
+      _onboardingCompletionUpdater = onboardingCompletionUpdater,
+      _restorePurchasesHandler = restorePurchasesHandler,
+      _clearAllDataHandler = clearAllDataHandler,
+      _permissionCoordinator = permissionCoordinator,
+      _refreshListenables = refreshListenables;
 
   final PremiumAccessResolver _premiumAccessResolver;
   final OnboardingCompletionResolver _onboardingCompletionResolver;
   final OnboardingCompletionUpdater _onboardingCompletionUpdater;
   final RestorePurchasesHandler _restorePurchasesHandler;
   final ClearAllDataHandler _clearAllDataHandler;
+  final PermissionCoordinator _permissionCoordinator;
   final List<Listenable> _refreshListenables;
 
   late final GoRouter router = GoRouter(
@@ -59,14 +63,18 @@ class AppRouter {
           }
           return null;
         },
-        builder: (context, state) =>
-            OnboardingScreen(onCompleted: _onboardingCompletionUpdater),
+        builder: (context, state) => OnboardingScreen(
+          onCompleted: _onboardingCompletionUpdater,
+          permissionCoordinator: _permissionCoordinator,
+        ),
       ),
       GoRoute(
         path: AppRoute.dashboard.path,
         name: AppRoute.dashboard.name,
-        builder: (context, state) =>
-            DashboardScreen(isPremium: _premiumAccessResolver()),
+        builder: (context, state) => DashboardScreen(
+          isPremium: _premiumAccessResolver(),
+          permissionCoordinator: _permissionCoordinator,
+        ),
       ),
       GoRoute(
         path: AppRoute.scanWifi.path,

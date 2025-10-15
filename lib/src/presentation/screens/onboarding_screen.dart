@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../navigation/app_route.dart';
 import '../onboarding/onboarding_storage.dart';
+import '../permissions/permission_coordinator.dart';
 import '../theme/theme_extensions.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -11,10 +11,12 @@ class OnboardingScreen extends StatefulWidget {
     super.key,
     this.onCompleted,
     this.storage = const OnboardingStorage(),
+    this.permissionCoordinator = const PermissionCoordinator(),
   });
 
   final VoidCallback? onCompleted;
   final OnboardingStorage storage;
+  final PermissionCoordinator permissionCoordinator;
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -22,6 +24,11 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with SingleTickerProviderStateMixin {
+  static const _localNetworkDeniedMessage =
+      'Local Network access is required to discover devices on your Wi‑Fi network.';
+  static const _localNetworkSettingsMessage =
+      'Local Network access has been disabled. Enable it in Settings to continue scanning.';
+
   late final AnimationController _animationController = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1600),
@@ -46,17 +53,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
     setState(() => _isRequestingPermissions = true);
     try {
-      final allGranted = await _requestRequiredPermissions();
-      if (!allGranted) {
+      final outcome = await widget.permissionCoordinator.requestLocalNetwork();
+      if (outcome != PermissionOutcome.granted) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'We need Bluetooth and Local Network access to scan for devices. '
-              'Please enable permissions in Settings.',
-            ),
-          ),
-        );
+        _showPermissionSnackBar(outcome);
         return;
       }
 
@@ -77,27 +77,33 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
   }
 
-  Future<bool> _requestRequiredPermissions() async {
-    final permissions = <Permission>[
-      Permission.bluetooth,
-      Permission.bluetoothScan,
-      Permission.bluetoothConnect,
-      Permission.locationWhenInUse, // Used for SSID display + local network.
-    ];
+  void _showPermissionSnackBar(PermissionOutcome outcome) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
 
-    final deniedPermissions = <Permission>[];
+    final message = switch (outcome) {
+      PermissionOutcome.denied => _localNetworkDeniedMessage,
+      PermissionOutcome.permanentlyDenied => _localNetworkSettingsMessage,
+      PermissionOutcome.granted => '',
+    };
 
-    for (final permission in permissions) {
-      final status = await permission.request();
-      if (!status.isGranted && !status.isLimited) {
-        deniedPermissions.add(permission);
-      }
+    if (message.isEmpty) {
+      return;
     }
 
-    // Local Network permission requires additional iOS configuration and will
-    // prompt automatically once networking APIs are invoked. We surface a
-    // reminder to the user below.
-    return deniedPermissions.isEmpty;
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: outcome == PermissionOutcome.permanentlyDenied
+            ? SnackBarAction(
+                label: 'Open Settings',
+                onPressed: () {
+                  widget.permissionCoordinator.openSettings();
+                },
+              )
+            : null,
+      ),
+    );
   }
 
   @override

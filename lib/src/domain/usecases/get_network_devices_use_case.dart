@@ -9,7 +9,7 @@ class GetNetworkDevicesUseCase {
 
   final DeviceScanRepository _repository;
 
-  Future<Either<Failure, List<DetectedDevice>>> call() {
-    return _repository.getNetworkDevices();
+  Stream<Either<Failure, List<DetectedDevice>>> call() {
+    return _repository.watchNetworkDevices();
   }
 }
