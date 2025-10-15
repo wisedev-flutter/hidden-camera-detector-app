@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
+import '../navigation/app_route.dart';
+import '../subscription/subscription_controller.dart';
 import '../theme/theme_extensions.dart';
 import '../widgets/device_result_card.dart';
 
@@ -35,7 +37,12 @@ class PaywallScreen extends StatelessWidget {
   ];
 
   void _onContinueWithoutSubscription(BuildContext context) {
-    context.pop();
+    final router = GoRouter.of(context);
+    if (router.canPop()) {
+      router.pop();
+    } else {
+      context.go(AppRoute.dashboard.path);
+    }
   }
 
   void _showSnackBar(BuildContext context, String message) {
@@ -50,23 +57,26 @@ class PaywallScreen extends StatelessWidget {
         displayCloseButton: true,
       );
       if (!context.mounted) return;
-      _handlePaywallResult(context, result);
+      await SubscriptionControllerProvider.of(context)
+          .handlePaywallResult(result);
+      if (!context.mounted) return;
+      _handlePaywallFeedback(context, result);
     } on PlatformException catch (error) {
       if (!context.mounted) return;
       _showSnackBar(
         context,
-        'Paywall unavailable until RevenueCat configuration is completed: ${error.message}',
+        'RevenueCat is not configured. Supply REVENUECAT_API_KEY before building. (${error.message})',
       );
     }
   }
 
-  void _handlePaywallResult(BuildContext context, PaywallResult result) {
+  void _handlePaywallFeedback(BuildContext context, PaywallResult result) {
     switch (result) {
       case PaywallResult.purchased:
       case PaywallResult.restored:
         _showSnackBar(
           context,
-          'Thanks! Premium access will activate once RevenueCat integration is live.',
+          'Thanks! Your premium access is now unlocked.',
         );
         break;
       case PaywallResult.cancelled:
@@ -94,7 +104,7 @@ class PaywallScreen extends StatelessWidget {
         title: const Text('Unlock Premium'),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded),
-          onPressed: () => context.pop(),
+          onPressed: () => _onContinueWithoutSubscription(context),
         ),
       ),
       body: ListView(

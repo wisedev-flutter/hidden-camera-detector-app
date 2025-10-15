@@ -4,12 +4,18 @@ import 'package:go_router/go_router.dart';
 import '../navigation/app_router.dart';
 import '../onboarding/onboarding_storage.dart';
 import '../permissions/permission_coordinator.dart';
+import '../subscription/subscription_controller.dart';
 import '../theme/app_theme.dart';
 
 class HiddenCameraDetectorApp extends StatefulWidget {
-  const HiddenCameraDetectorApp({super.key, required this.onboardingCompleted});
+  const HiddenCameraDetectorApp({
+    super.key,
+    required this.onboardingCompleted,
+    required this.subscriptionController,
+  });
 
   final bool onboardingCompleted;
+  final SubscriptionController subscriptionController;
 
   @override
   State<HiddenCameraDetectorApp> createState() =>
@@ -18,7 +24,6 @@ class HiddenCameraDetectorApp extends StatefulWidget {
 
 class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
   late final ValueNotifier<bool> _onboardingCompletedNotifier;
-  late final ValueNotifier<bool> _premiumNotifier;
   late final AppRouter _appRouter;
   final OnboardingStorage _onboardingStorage = const OnboardingStorage();
   final PermissionCoordinator _permissionCoordinator = const PermissionCoordinator();
@@ -29,10 +34,9 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
     _onboardingCompletedNotifier = ValueNotifier<bool>(
       widget.onboardingCompleted,
     );
-    _premiumNotifier = ValueNotifier<bool>(false);
 
     _appRouter = AppRouter(
-      premiumAccessResolver: () => _premiumNotifier.value,
+      premiumAccessResolver: () => widget.subscriptionController.isPremium,
       onboardingCompletionResolver: () => _onboardingCompletedNotifier.value,
       onboardingCompletionUpdater: () {
         if (!_onboardingCompletedNotifier.value) {
@@ -40,21 +44,21 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
         }
       },
       restorePurchasesHandler: () async {
-        if (!_premiumNotifier.value) {
-          _premiumNotifier.value = true;
-        }
-        return true;
+        return widget.subscriptionController.restorePurchases();
       },
       clearAllDataHandler: () async {
         await _onboardingStorage.clear();
-        _premiumNotifier.value = false;
+        widget.subscriptionController.reset();
         _onboardingCompletedNotifier.value = false;
       },
       permissionCoordinator: _permissionCoordinator,
-      refreshListenables: [_premiumNotifier, _onboardingCompletedNotifier],
+      refreshListenables: [
+        widget.subscriptionController,
+        _onboardingCompletedNotifier,
+      ],
     );
 
-    _premiumNotifier.addListener(_handleStateChange);
+    widget.subscriptionController.addListener(_handleStateChange);
     _onboardingCompletedNotifier.addListener(_handleStateChange);
   }
 
@@ -64,10 +68,10 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
 
   @override
   void dispose() {
-    _premiumNotifier.removeListener(_handleStateChange);
+    widget.subscriptionController.removeListener(_handleStateChange);
     _onboardingCompletedNotifier.removeListener(_handleStateChange);
-    _premiumNotifier.dispose();
     _onboardingCompletedNotifier.dispose();
+    widget.subscriptionController.dispose();
     super.dispose();
   }
 
@@ -75,12 +79,15 @@ class _HiddenCameraDetectorAppState extends State<HiddenCameraDetectorApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Hidden Camera Detector',
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      routerConfig: _router,
+    return SubscriptionControllerProvider(
+      controller: widget.subscriptionController,
+      child: MaterialApp.router(
+        title: 'Hidden Camera Detector',
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.system,
+        routerConfig: _router,
+      ),
     );
   }
 }

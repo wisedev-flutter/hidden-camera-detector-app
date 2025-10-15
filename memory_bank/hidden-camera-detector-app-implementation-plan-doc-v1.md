@@ -272,11 +272,14 @@ In `ios/Runner/`:
 ---
 
 ### Step 4.5 — Logging & Diagnostics
-- Add `logger` package for dev logging.
-- (Optional) Add Crashlytics/Sentry (with ATT prompt if needed).
+- **CRITICAL PRIVACY REQUIREMENT:** Never log PII (e.g., IP addresses, MAC addresses, device names). Route all logging through a sanitised utility that strips or redacts sensitive fields before emitting messages.
+- Add `logger` package for development-only diagnostics.
+- (Optional) Add Crashlytics/Sentry (with ATT prompt if needed) once the logging wrapper guarantees no PII leakage.
 - Enable verbose RevenueCat logging in development via `Purchases.setLogLevel(LogLevel.debug)` before configuring the SDK to simplify sandbox diagnostics.
 
-✅ **Test:** Verify logs only appear in debug builds.
+✅ **Test:**
+- Inspect all logging statements (including third-party wrappers) to confirm no PII is ever passed.
+- Run a release build while tailing the device console to ensure only non-sensitive logs—and none at all in production—are emitted.
 
 ---
 

@@ -12,6 +12,7 @@
         "flutter",
         "freezed_annotation",
         "go_router",
+        "logger",
         "package_info_plus",
         "permission_handler",
         "purchases_flutter",
@@ -172,6 +173,13 @@
         "flutter",
         "flutter_web_plugins",
         "web"
+      ]
+    },
+    {
+      "name": "logger",
+      "version": "2.6.2",
+      "dependencies": [
+        "meta"
       ]
     },
     {

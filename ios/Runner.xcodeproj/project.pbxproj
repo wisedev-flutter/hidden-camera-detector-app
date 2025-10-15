@@ -19,7 +19,7 @@
 		A1E4F5F2265E920B00F1ABCD /* MdnsScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E4F5E2265E920B00F1ABCD /* MdnsScanner.swift */; };
 		A1E4F5F3265E920B00F1ABCD /* BluetoothScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E4F5E3265E920B00F1ABCD /* BluetoothScanner.swift */; };
 		D7637C0DBF39DC01BBFDC4AA /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8B6A91FF5F58FE9288A0D1FF /* Pods_Runner.framework */; };
-		DFC65D9027D82B5200B4D9E5 /* ScannerApi.g.m in Sources */ = {isa = PBXBuildFile; fileRef = DFC65D8F27D82B5200B4D9E5 /* ScannerApi.g.m */; };
+		DFC65D9027D82B5200B4D9E5 /* Pigeons/ScannerApi.g.m in Sources */ = {isa = PBXBuildFile; fileRef = DFC65D8F27D82B5200B4D9E5 /* Pigeons/ScannerApi.g.m */; };
 		E8A8C1152E9FFF9600BF7784 /* Profile.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = E8A8C1142E9FFF9600BF7784 /* Profile.xcconfig */; };
 /* End PBXBuildFile section */
 
@@ -72,7 +72,7 @@
 		BD677A32E5267D399F168D55 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		D4D45BF6D5C525C5B39B0F41 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		DA459B6D340B6BBFC5AFCD01 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
-		DFC65D8F27D82B5200B4D9E5 /* ScannerApi.g.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Pigeons/ScannerApi.g.m; sourceTree = "<group>"; };
+		DFC65D8F27D82B5200B4D9E5 /* Pigeons/ScannerApi.g.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Pigeons/ScannerApi.g.m; sourceTree = "<group>"; };
 		E8A8C1142E9FFF9600BF7784 /* Profile.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Profile.xcconfig; sourceTree = "<group>"; };
 		E9A1EBCB01F7C822FDE015D5 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -173,7 +173,7 @@
 				A1E4F5E1265E920B00F1ABCD /* ScannerPlugin.swift */,
 				A1E4F5E2265E920B00F1ABCD /* MdnsScanner.swift */,
 				A1E4F5E3265E920B00F1ABCD /* BluetoothScanner.swift */,
-				DFC65D8F27D82B5200B4D9E5 /* ScannerApi.g.m */,
+				DFC65D8F27D82B5200B4D9E5 /* Pigeons/ScannerApi.g.m */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -315,9 +315,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Copy Pods Resources";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -347,9 +351,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -419,7 +427,7 @@
 				A1E4F5F1265E920B00F1ABCD /* ScannerPlugin.swift in Sources */,
 				A1E4F5F2265E920B00F1ABCD /* MdnsScanner.swift in Sources */,
 				A1E4F5F3265E920B00F1ABCD /* BluetoothScanner.swift in Sources */,
-				DFC65D9027D82B5200B4D9E5 /* ScannerApi.g.m in Sources */,
+				DFC65D9027D82B5200B4D9E5 /* Pigeons/ScannerApi.g.m in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -523,7 +531,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.hiddencameradetector;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wisedev.hiddencameradetector;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -715,7 +723,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.hiddencameradetector;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wisedev.hiddencameradetector;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -738,7 +746,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.hiddencameradetector;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wisedev.hiddencameradetector;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
