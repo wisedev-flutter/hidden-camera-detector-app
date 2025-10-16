@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
+import 'package:hidden_camera_detector/core/config/app_config.dart';
 import 'package:hidden_camera_detector/core/config/paywall_mode.dart';
 import '../navigation/app_route.dart';
 import '../subscription/subscription_controller.dart';
@@ -115,7 +116,9 @@ class PaywallScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final textStyles = context.appTextStyles;
     final scheme = Theme.of(context).colorScheme;
-    final isCustom = paywallMode.isCustom;
+    final isMockMode = AppConfig.instance.isMock;
+    final effectiveMode = isMockMode ? PaywallMode.custom : paywallMode;
+    final isCustom = effectiveMode.isCustom;
     final planHighlights = isCustom
         ? const [
             _PlanHighlightData(

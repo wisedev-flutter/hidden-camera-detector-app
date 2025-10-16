@@ -300,11 +300,29 @@ In `ios/Runner/`:
 ## 6. IR Light Detection
 
 ### Step 6.1 — Implement IR Camera
-- Use `camera` package.
-- Apply grayscale filter using `ColorFiltered`.
-- Show permission prompt if denied.
+- Use the `camera` package to stream the rear-facing camera feed into the IR tab.
+- Apply a high-contrast grayscale matrix (not just plain desaturation) via `ColorFiltered` so bright IR reflections pop against a darkened background.
+- When permission is denied, display in-app guidance explaining why the camera is required; if permanently denied, include a button that opens iOS Settings via `openAppSettings()`.
 
-✅ **Test:** Open IR tab — grayscale camera view active; permission denial handled cleanly.
+✅ **Test:** Open IR tab — high-contrast camera view active; deny permissions and confirm actionable messaging plus a working “Open Settings” link for permanent denials.
+
+#### Step 6.1.1 — Refine Onboarding Permission Timing
+- Defer Local Network permission requests until the user taps the onboarding call-to-action. Present educational content first, then request access when they explicitly opt in.
+- If the user declines, keep them on the onboarding screen with a retry option and explanatory copy instead of auto-reprompting.
+
+✅ **Test:** Launch app — onboarding renders without prompts. Tap the CTA to trigger the permission dialog; declining keeps the user on the screen with a retry button.
+
+#### Step 6.1.2 — Improve Camera Permission Handling
+- On the IR screen, inspect the current camera permission status before deciding which UI state to show; only label it “permanently denied” when `isPermanentlyDenied` is true.
+- Provide separate messaging for first-time denials (with a retry button) versus permanent denials (with “Open Settings”), and reinitialise the camera when the status becomes granted.
+
+✅ **Test:** With camera permission not yet requested, opening the IR tab shows the explanation screen; tapping the button requests permission. After denial, retry works; after a permanent denial, the user sees the settings shortcut and, once toggled back on, the preview loads.
+
+### Step 6.2 — Camera Controller Lifecycle
+- Implement the IR screen as a `StatefulWidget` that initialises a `CameraController` in `initState`, awaits `initialize()`, and renders via `FutureBuilder`/`ValueListenableBuilder` for loading states.
+- Release hardware resources by calling `controller.dispose()` in `dispose()` and stopping the preview when the widget leaves the tree or app backgrounds.
+
+✅ **Test:** Navigate into/out of the IR tab repeatedly — no crashes, warnings, or lingering camera usage in Xcode logs; backgrounding the app releases the camera cleanly.
 
 ---
 

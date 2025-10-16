@@ -101,5 +101,11 @@
 
 ## 2025-10-14 — Step 5 (Interim Paywall Mode)
 - Added a `PaywallMode` config parsed from `PAYWALL_MODE` so developers can flip between the RevenueCat flow and a local mock paywall.
-- Updated `PaywallScreen` to surface a development-only banner and mock weekly/monthly plans that unlock premium via `SubscriptionController.activateMockPremium()`.
+- Updated `PaywallScreen` to surface a development-only banner and mock weekly/monthly plans that unlock premium via `SubscriptionController.activateMockPremium()`, laid out side-by-side with equal height for parity.
+- Mock purchases/restores now auto-dismiss the paywall and return to the dashboard so testers can immediately verify premium access.
 - Introduced focused widget coverage (`test/presentation/screens/paywall_screen_test.dart`) to ensure the custom paywall renders and is discoverable when the flag is enabled.
+
+## 2025-10-14 — Step 6.1 (IR Camera)
+- Replaced the placeholder IR screen with a lifecycle-aware camera preview (`lib/src/presentation/screens/infrared_scan_screen.dart`) that requests permissions, applies a high-contrast grayscale filter, and guides the user through denied/permanently-denied flows.
+- Added camera permission copy to Info.plist and wired `openAppSettings()`/retry actions so users can recover from denials without reinstalling.
+- Ensured the camera controller disposes on navigation/lifecycle changes, reinitialising on resume to prevent hardware leaks or crashes.

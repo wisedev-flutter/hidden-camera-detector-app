@@ -19,7 +19,7 @@ class PigeonDeviceScanRepository extends DeviceScanRepository
     DateTime Function()? now,
   })  : _hostApi = hostApi ?? ScannerHostApi(binaryMessenger: binaryMessenger),
         _now = now ?? DateTime.now {
-    ScannerStreamApi.setup(this, binaryMessenger: binaryMessenger);
+    ScannerStreamApi.setUp(this, binaryMessenger: binaryMessenger);
   }
 
   final ScannerHostApi _hostApi;
@@ -58,10 +58,10 @@ class PigeonDeviceScanRepository extends DeviceScanRepository
     final repositorySource = _mapSource(event.source);
     final device = _mapDeviceDto(event.device, repositorySource);
 
-    final cache = event.source == PigeonScanSource.wifi ? _wifiDevices : _bluetoothDevices;
+    final cache = event.source == ScanSourceDto.wifi ? _wifiDevices : _bluetoothDevices;
     cache[device.id] = device;
 
-    final controller = event.source == PigeonScanSource.wifi ? _wifiController : _bluetoothController;
+    final controller = event.source == ScanSourceDto.wifi ? _wifiController : _bluetoothController;
     controller.add(Right(cache.values.toList()));
   }
 
@@ -178,25 +178,25 @@ class PigeonDeviceScanRepository extends DeviceScanRepository
     );
   }
 
-  DeviceRiskLevel _mapRiskLevel(PigeonDeviceRiskLevel? level) {
+  DeviceRiskLevel _mapRiskLevel(DeviceRiskLevelDto? level) {
     switch (level) {
-      case PigeonDeviceRiskLevel.low:
+      case DeviceRiskLevelDto.low:
         return const DeviceRiskLevel.low();
-      case PigeonDeviceRiskLevel.medium:
+      case DeviceRiskLevelDto.medium:
         return const DeviceRiskLevel.medium();
-      case PigeonDeviceRiskLevel.high:
+      case DeviceRiskLevelDto.high:
         return const DeviceRiskLevel.high();
-      case PigeonDeviceRiskLevel.unknown:
+      case DeviceRiskLevelDto.unknown:
       case null:
         return const DeviceRiskLevel.unknown();
     }
   }
 
-  ScanSource _mapSource(PigeonScanSource source) {
+  ScanSource _mapSource(ScanSourceDto source) {
     switch (source) {
-      case PigeonScanSource.wifi:
+      case ScanSourceDto.wifi:
         return const ScanSource.wifi();
-      case PigeonScanSource.bluetooth:
+      case ScanSourceDto.bluetooth:
         return const ScanSource.bluetooth();
     }
   }
@@ -207,6 +207,6 @@ class PigeonDeviceScanRepository extends DeviceScanRepository
     _bluetoothTimeoutSubscription?.cancel();
     _wifiController.close();
     _bluetoothController.close();
-    ScannerStreamApi.setup(null);
+    ScannerStreamApi.setUp(null);
   }
 }

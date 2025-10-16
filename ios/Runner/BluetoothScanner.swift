@@ -41,7 +41,7 @@ final class BluetoothScanner {
     timer?.cancel()
     timer = nil
 
-    if let lastEvent = lastEvent, !lastEvent.isFinal.boolValue {
+    if let lastEvent = lastEvent, !lastEvent.isFinal {
       emitFinalEvent(from: lastEvent)
     }
 
@@ -61,7 +61,7 @@ final class BluetoothScanner {
         self.isScanning = false
         self.timer?.cancel()
         self.timer = nil
-        if let lastEvent = self.lastEvent, !lastEvent.isFinal.boolValue {
+        if let lastEvent = self.lastEvent, !lastEvent.isFinal {
           self.emitFinalEvent(from: lastEvent)
         }
         return
@@ -77,11 +77,11 @@ final class BluetoothScanner {
   private func publish(device: HCDDeviceDto, total: Int, isFinal: Bool) {
     let eventId = nextEventId()
     let event = HCDDeviceEventDto.make(
-      with: .bluetooth,
+      withSource: .bluetooth,
       device: device,
-      eventId: NSNumber(value: eventId),
+      eventId: eventId,
       totalDiscovered: NSNumber(value: total),
-      isFinal: NSNumber(value: isFinal)
+      isFinal: isFinal
     )
     lastEvent = event
 
@@ -92,11 +92,11 @@ final class BluetoothScanner {
 
   private func emitFinalEvent(from event: HCDDeviceEventDto) {
     let finalEvent = HCDDeviceEventDto.make(
-      with: event.source,
+      withSource: event.source,
       device: event.device,
-      eventId: NSNumber(value: nextEventId()),
+      eventId: nextEventId(),
       totalDiscovered: event.totalDiscovered,
-      isFinal: NSNumber(value: true)
+      isFinal: true
     )
     DispatchQueue.main.async { [weak self] in
       self?.streamApi.onDeviceEventEvent(finalEvent) { _ in }
@@ -174,8 +174,8 @@ extension MockDeviceFactory {
         manufacturer: "Acme Surveillance",
         ipAddress: nil,
         rssi: NSNumber(value: -45),
-        isTrusted: NSNumber(value: false),
-        riskLevel: HCDPigeonDeviceRiskLevelBox(value: .high)
+        isTrusted: false,
+        riskLevel: HCDDeviceRiskLevelDtoBox(value: .high)
       ),
       HCDDeviceDto.make(
         withId: "77:88:99:AA:BB:CC",
@@ -184,8 +184,8 @@ extension MockDeviceFactory {
         manufacturer: "Sonos",
         ipAddress: nil,
         rssi: NSNumber(value: -62),
-        isTrusted: NSNumber(value: true),
-        riskLevel: HCDPigeonDeviceRiskLevelBox(value: .medium)
+        isTrusted: true,
+        riskLevel: HCDDeviceRiskLevelDtoBox(value: .medium)
       ),
     ]
   }

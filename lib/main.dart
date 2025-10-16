@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/config/app_config.dart';
 import 'core/config/paywall_mode.dart';
 import 'src/data/datasources/revenuecat_data_source.dart';
 import 'src/data/repositories/revenuecat_subscription_repository.dart';
@@ -25,12 +26,37 @@ const _paywallModeValue = String.fromEnvironment(
   defaultValue: 'revenuecat',
 );
 
+const _appModeValue = String.fromEnvironment(
+  'APP_MODE',
+  defaultValue: 'mock',
+);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final appMode = _parseAppMode(_appModeValue);
+  AppConfig.init(appMode);
 
   final onboardingCompleted = await const OnboardingStorage().isCompleted();
   final paywallMode = PaywallModeX.fromEnvironment(_paywallModeValue);
 
+  final subscriptionController = AppConfig.instance.isMock
+      ? SubscriptionController.mock()
+      : _buildRealSubscriptionController();
+
+  if (!AppConfig.instance.isMock) {
+    await subscriptionController.initialize();
+  }
+
+  runApp(
+    HiddenCameraDetectorApp(
+      onboardingCompleted: onboardingCompleted,
+      subscriptionController: subscriptionController,
+      paywallMode: paywallMode,
+    ),
+  );
+}
+
+SubscriptionController _buildRealSubscriptionController() {
   final revenueCatDataSource = RevenueCatDataSource(apiKey: _revenueCatApiKey);
 
   final subscriptionRepository = RevenueCatSubscriptionRepository(
@@ -38,7 +64,7 @@ Future<void> main() async {
     entitlementId: _premiumEntitlementId,
   );
 
-  final subscriptionController = SubscriptionController(
+  return SubscriptionController(
     dataSource: revenueCatDataSource,
     entitlementId: _premiumEntitlementId,
     getSubscriptionStatusUseCase: GetSubscriptionStatusUseCase(
@@ -49,14 +75,14 @@ Future<void> main() async {
     ),
     restorePurchasesUseCase: RestorePurchasesUseCase(subscriptionRepository),
   );
+}
 
-  await subscriptionController.initialize();
-
-  runApp(
-    HiddenCameraDetectorApp(
-      onboardingCompleted: onboardingCompleted,
-      subscriptionController: subscriptionController,
-      paywallMode: paywallMode,
-    ),
-  );
+AppMode _parseAppMode(String value) {
+  switch (value.toLowerCase()) {
+    case 'real':
+      return AppMode.real;
+    case 'mock':
+    default:
+      return AppMode.mock;
+  }
 }

@@ -76,7 +76,7 @@ void main() {
     final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
 
     tearDown(() {
-      ScannerStreamApi.setup(
+      ScannerStreamApi.setUp(
         null,
         binaryMessenger: messenger,
       );
@@ -84,7 +84,7 @@ void main() {
 
     test('routes native device events to Dart handler', () async {
       final streamApi = _TestStreamApi();
-      ScannerStreamApi.setup(
+      ScannerStreamApi.setUp(
         streamApi,
         binaryMessenger: messenger,
       );
@@ -94,23 +94,23 @@ void main() {
       final deviceDto = DeviceDto(
         id: 'AA:BB:CC:DD:EE:FF',
         name: 'Mock Camera',
-        source: PigeonScanSource.wifi,
+        source: ScanSourceDto.wifi,
         isTrusted: false,
         manufacturer: 'Fabrikam',
         ipAddress: '192.168.1.5',
         rssi: -40,
-        riskLevel: PigeonDeviceRiskLevel.high,
+        riskLevel: DeviceRiskLevelDto.high,
       );
 
       final event = DeviceEventDto(
-        source: PigeonScanSource.wifi,
+        source: ScanSourceDto.wifi,
         device: deviceDto,
         eventId: 1,
         totalDiscovered: 3,
         isFinal: false,
       );
 
-      final encoded = ScannerStreamApi.codec.encodeMessage(<Object?>[event]);
+      final encoded = ScannerStreamApi.pigeonChannelCodec.encodeMessage(<Object?>[event]);
       final completer = Completer<ByteData?>();
       messenger.handlePlatformMessage(
         channelName,
@@ -118,11 +118,11 @@ void main() {
         completer.complete,
       );
       final reply = await completer.future;
-      expect(ScannerStreamApi.codec.decodeMessage(reply), isEmpty);
+      expect(ScannerStreamApi.pigeonChannelCodec.decodeMessage(reply), isEmpty);
 
       expect(streamApi.receivedEvents, hasLength(1));
       final captured = streamApi.receivedEvents.single;
-      expect(captured.source, PigeonScanSource.wifi);
+      expect(captured.source, ScanSourceDto.wifi);
       expect(captured.device.id, deviceDto.id);
       expect(captured.totalDiscovered, 3);
       expect(captured.isFinal, isFalse);

@@ -74,23 +74,23 @@ void main() {
       final deviceDto = DeviceDto(
         id: 'AA:BB:CC:11:22:33',
         name: 'Nest Cam',
-        source: PigeonScanSource.wifi,
+        source: ScanSourceDto.wifi,
         manufacturer: 'Google',
         ipAddress: '192.168.1.24',
         rssi: -42,
         isTrusted: false,
-        riskLevel: PigeonDeviceRiskLevel.high,
+        riskLevel: DeviceRiskLevelDto.high,
       );
 
       final event = DeviceEventDto(
-        source: PigeonScanSource.wifi,
+        source: ScanSourceDto.wifi,
         device: deviceDto,
         eventId: 1,
         totalDiscovered: 1,
         isFinal: false,
       );
 
-      final encoded = ScannerStreamApi.codec.encodeMessage(<Object?>[event]);
+      final encoded = ScannerStreamApi.pigeonChannelCodec.encodeMessage(<Object?>[event]);
       final completer = Completer<ByteData?>();
       messenger.handlePlatformMessage(streamChannel, encoded, completer.complete);
       await completer.future;

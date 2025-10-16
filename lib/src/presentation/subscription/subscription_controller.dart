@@ -22,15 +22,27 @@ class SubscriptionController with ChangeNotifier {
        _entitlementId = entitlementId,
        _getSubscriptionStatusUseCase = getSubscriptionStatusUseCase,
        _purchaseSubscriptionUseCase = purchaseSubscriptionUseCase,
-       _restorePurchasesUseCase = restorePurchasesUseCase {
+       _restorePurchasesUseCase = restorePurchasesUseCase,
+       _mockMode = false {
     _isPremiumNotifier.addListener(notifyListeners);
   }
 
-  final RevenueCatDataSource _dataSource;
+  SubscriptionController.mock()
+      : _dataSource = null,
+        _entitlementId = 'mock',
+        _getSubscriptionStatusUseCase = null,
+        _purchaseSubscriptionUseCase = null,
+        _restorePurchasesUseCase = null,
+        _mockMode = true {
+    _isPremiumNotifier.addListener(notifyListeners);
+  }
+
+  final RevenueCatDataSource? _dataSource;
   final String _entitlementId;
-  final GetSubscriptionStatusUseCase _getSubscriptionStatusUseCase;
-  final PurchaseSubscriptionUseCase _purchaseSubscriptionUseCase;
-  final RestorePurchasesUseCase _restorePurchasesUseCase;
+  final GetSubscriptionStatusUseCase? _getSubscriptionStatusUseCase;
+  final PurchaseSubscriptionUseCase? _purchaseSubscriptionUseCase;
+  final RestorePurchasesUseCase? _restorePurchasesUseCase;
+  final bool _mockMode;
 
   final ValueNotifier<bool> _isPremiumNotifier = ValueNotifier<bool>(false);
 
@@ -40,11 +52,14 @@ class SubscriptionController with ChangeNotifier {
 
   bool get isPremium => _isPremiumNotifier.value;
 
-  bool get isConfigured => _dataSource.isConfigured;
+  bool get isConfigured => _mockMode ? true : (_dataSource?.isConfigured ?? false);
 
   Future<void> initialize() async {
+    if (_mockMode) {
+      return;
+    }
     AppLogger.log.debug('Initialising subscription controller');
-    final configured = await _dataSource.configure();
+    final configured = await _dataSource!.configure();
     if (!configured) {
       AppLogger.log.warn(
         'RevenueCat not configured. Premium features remain locked.',
@@ -62,11 +77,14 @@ class SubscriptionController with ChangeNotifier {
   }
 
   Future<void> _refreshStatus() async {
-    if (!_dataSource.isConfigured) {
+    if (_mockMode) {
+      return;
+    }
+    if (!(_dataSource?.isConfigured ?? false)) {
       _isPremiumNotifier.value = false;
       return;
     }
-    final result = await _getSubscriptionStatusUseCase();
+    final result = await _getSubscriptionStatusUseCase!();
     result.fold(
       (_) => _isPremiumNotifier.value = false,
       (isPremium) => _isPremiumNotifier.value = isPremium,
@@ -74,13 +92,17 @@ class SubscriptionController with ChangeNotifier {
   }
 
   Future<bool> restorePurchases() async {
-    if (!_dataSource.isConfigured) {
+    if (_mockMode) {
+      _isPremiumNotifier.value = true;
+      return true;
+    }
+    if (!(_dataSource?.isConfigured ?? false)) {
       AppLogger.log.warn(
         'Restore requested before RevenueCat configuration completed.',
       );
       return false;
     }
-    final result = await _restorePurchasesUseCase();
+    final result = await _restorePurchasesUseCase!();
     return result.fold((_) => false, (success) {
       _isPremiumNotifier.value = success;
       AppLogger.log.info(
@@ -92,7 +114,13 @@ class SubscriptionController with ChangeNotifier {
   }
 
   Future<void> handlePaywallResult(PaywallResult result) async {
-    if (!_dataSource.isConfigured) {
+    if (_mockMode) {
+      if (result == PaywallResult.purchased || result == PaywallResult.restored) {
+        _isPremiumNotifier.value = true;
+      }
+      return;
+    }
+    if (!(_dataSource?.isConfigured ?? false)) {
       AppLogger.log.warn(
         'Paywall result ignored because RevenueCat is not configured.',
         data: {'result': result.name},
@@ -100,7 +128,7 @@ class SubscriptionController with ChangeNotifier {
       return;
     }
     if (result == PaywallResult.purchased || result == PaywallResult.restored) {
-      final purchaseResult = await _purchaseSubscriptionUseCase();
+      final purchaseResult = await _purchaseSubscriptionUseCase!();
       purchaseResult.fold(
         (_) => _isPremiumNotifier.value = false,
         (isPremium) => _isPremiumNotifier.value = isPremium,
@@ -113,6 +141,9 @@ class SubscriptionController with ChangeNotifier {
   }
 
   void _handleCustomerInfoUpdate(CustomerInfo info) {
+    if (_mockMode) {
+      return;
+    }
     final isActive = info.entitlements.active.containsKey(_entitlementId);
     if (_isPremiumNotifier.value != isActive) {
       _isPremiumNotifier.value = isActive;
@@ -141,7 +172,7 @@ class SubscriptionController with ChangeNotifier {
     _customerInfoSubscription?.cancel();
     _isPremiumNotifier.removeListener(notifyListeners);
     _isPremiumNotifier.dispose();
-    _dataSource.dispose();
+    _dataSource?.dispose();
     super.dispose();
   }
 }

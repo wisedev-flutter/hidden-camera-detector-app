@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
+import '../../../core/config/app_config.dart';
 import '../../pigeon/scanner_api.g.dart';
 
 enum PermissionOutcome {
@@ -30,22 +31,27 @@ class PermissionCoordinator {
   ScannerHostApi get _host => _hostApi ?? ScannerHostApi();
 
   Future<PermissionOutcome> requestLocalNetwork() async {
-    final requester = _localNetworkRequester;
-    if (requester != null) {
-      final status = await requester();
-      return _mapStatus(status);
-    }
-
-    try {
-      await _host.startWifiScan();
-      await _host.stopWifiScan();
+    if (AppConfig.instance.isMock) {
       return PermissionOutcome.granted;
+    }
+    try {
+      final requester = _localNetworkRequester;
+      if (requester != null) {
+        final status = await requester();
+        return _mapStatus(status);
+      }
+
+      final status = await _host.requestLocalNetworkAuthorization();
+      return _mapPermissionStatus(status);
     } on PlatformException catch (error) {
       return _mapPlatformException(error);
     }
   }
 
   Future<PermissionOutcome> requestBluetooth() async {
+    if (AppConfig.instance.isMock) {
+      return PermissionOutcome.granted;
+    }
     final requesters = _bluetoothRequesters ??
         [
           () => ph.Permission.bluetooth.request(),
@@ -82,6 +88,17 @@ class PermissionCoordinator {
       return PermissionOutcome.granted;
     }
     return PermissionOutcome.denied;
+  }
+
+  PermissionOutcome _mapPermissionStatus(PermissionStatusDto status) {
+    switch (status) {
+      case PermissionStatusDto.granted:
+        return PermissionOutcome.granted;
+      case PermissionStatusDto.denied:
+        return PermissionOutcome.denied;
+      case PermissionStatusDto.permanentlyDenied:
+        return PermissionOutcome.permanentlyDenied;
+    }
   }
 
   PermissionOutcome _mapPlatformException(PlatformException exception) {

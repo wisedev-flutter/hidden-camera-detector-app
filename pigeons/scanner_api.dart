@@ -13,16 +13,22 @@ import 'package:pigeon/pigeon.dart';
 )
 class _PigeonConfig {}
 
-enum PigeonScanSource {
+enum ScanSourceDto {
   wifi,
   bluetooth,
 }
 
-enum PigeonDeviceRiskLevel {
+enum DeviceRiskLevelDto {
   low,
   medium,
   high,
   unknown,
+}
+
+enum PermissionStatusDto {
+  granted,
+  denied,
+  permanentlyDenied,
 }
 
 /// Mirrors the Flutter `DetectedDevice` entity. Field documentation ensures a
@@ -50,12 +56,12 @@ class DeviceDto {
 
   String id;
   String name;
-  PigeonScanSource source;
+  ScanSourceDto source;
   String? manufacturer;
   String? ipAddress;
   int? rssi;
   bool isTrusted;
-  PigeonDeviceRiskLevel? riskLevel;
+  DeviceRiskLevelDto? riskLevel;
 }
 
 /// Streaming payload delivered from native scanners. Every event represents a
@@ -71,7 +77,7 @@ class DeviceEventDto {
     this.isFinal = false,
   });
 
-  PigeonScanSource source;
+  ScanSourceDto source;
   DeviceDto device;
   int eventId;
   int? totalDiscovered;
@@ -80,6 +86,9 @@ class DeviceEventDto {
 
 @HostApi()
 abstract class ScannerHostApi {
+  @async
+  PermissionStatusDto requestLocalNetworkAuthorization();
+
   @async
   void startWifiScan();
 

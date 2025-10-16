@@ -31,6 +31,11 @@ final class MdnsScanner {
     completion(nil)
   }
 
+  func requestPermission(completion: @escaping (FlutterError?) -> Void) {
+    let permissionError = permissionValidator.validate()
+    completion(permissionError)
+  }
+
   func stop(completion: @escaping (FlutterError?) -> Void) {
     guard isScanning else {
       completion(nil)
@@ -41,7 +46,7 @@ final class MdnsScanner {
     timer?.cancel()
     timer = nil
 
-    if let lastEvent = lastEvent, !lastEvent.isFinal.boolValue {
+    if let lastEvent = lastEvent, !lastEvent.isFinal {
       emitFinalEvent(from: lastEvent)
     }
 
@@ -54,6 +59,7 @@ final class MdnsScanner {
 
     timer = DispatchSource.makeTimerSource(queue: queue)
     timer?.schedule(deadline: .now(), repeating: .milliseconds(800))
+
     timer?.setEventHandler { [weak self] in
       guard let self = self, self.isScanning else { return }
 
@@ -61,7 +67,7 @@ final class MdnsScanner {
         self.isScanning = false
         self.timer?.cancel()
         self.timer = nil
-        if let lastEvent = self.lastEvent, !lastEvent.isFinal.boolValue {
+        if let lastEvent = self.lastEvent, !lastEvent.isFinal {
           self.emitFinalEvent(from: lastEvent)
         }
         return
@@ -77,11 +83,11 @@ final class MdnsScanner {
   private func publish(device: HCDDeviceDto, total: Int, isFinal: Bool) {
     let eventId = nextEventId()
     let event = HCDDeviceEventDto.make(
-      with: .wifi,
+      withSource: .wifi,
       device: device,
-      eventId: NSNumber(value: eventId),
+      eventId: eventId,
       totalDiscovered: NSNumber(value: total),
-      isFinal: NSNumber(value: isFinal)
+      isFinal: isFinal
     )
 
     lastEvent = event
@@ -92,11 +98,11 @@ final class MdnsScanner {
 
   private func emitFinalEvent(from event: HCDDeviceEventDto) {
     let finalEvent = HCDDeviceEventDto.make(
-      with: event.source,
+      withSource: event.source,
       device: event.device,
-      eventId: NSNumber(value: nextEventId()),
+      eventId: nextEventId(),
       totalDiscovered: event.totalDiscovered,
-      isFinal: NSNumber(value: true)
+      isFinal: true
     )
     DispatchQueue.main.async { [weak self] in
       self?.streamApi.onDeviceEventEvent(finalEvent) { _ in }
@@ -153,8 +159,8 @@ enum MockDeviceFactory {
         manufacturer: "Google",
         ipAddress: "192.168.1.24",
         rssi: nil,
-        isTrusted: NSNumber(value: false),
-        riskLevel: HCDPigeonDeviceRiskLevelBox(value: .high)
+        isTrusted: false,
+        riskLevel: HCDDeviceRiskLevelDtoBox(value: .high)
       ),
       HCDDeviceDto.make(
         withId: "AA:BB:CC:44:55:66",
@@ -163,8 +169,8 @@ enum MockDeviceFactory {
         manufacturer: "TP-Link",
         ipAddress: "192.168.1.42",
         rssi: nil,
-        isTrusted: NSNumber(value: false),
-        riskLevel: HCDPigeonDeviceRiskLevelBox(value: .medium)
+        isTrusted: false,
+        riskLevel: HCDDeviceRiskLevelDtoBox(value: .medium)
       ),
       HCDDeviceDto.make(
         withId: "AA:BB:CC:77:88:99",
@@ -173,8 +179,8 @@ enum MockDeviceFactory {
         manufacturer: "HP",
         ipAddress: "192.168.1.65",
         rssi: nil,
-        isTrusted: NSNumber(value: true),
-        riskLevel: HCDPigeonDeviceRiskLevelBox(value: .low)
+        isTrusted: true,
+        riskLevel: HCDDeviceRiskLevelDtoBox(value: .low)
       ),
     ]
   }

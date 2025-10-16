@@ -2,11 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:permission_handler/permission_handler.dart' as ph;
 
+import 'package:hidden_camera_detector/core/config/app_config.dart';
 import 'package:hidden_camera_detector/src/presentation/onboarding/onboarding_storage.dart';
 import 'package:hidden_camera_detector/src/presentation/screens/onboarding_screen.dart';
 import 'package:hidden_camera_detector/src/presentation/permissions/permission_coordinator.dart';
 
 void main() {
+  setUp(() {
+    AppConfig.init(AppMode.real);
+  });
+
+  tearDown(() {
+    AppConfig.init(AppMode.mock);
+  });
+
   group('OnboardingScreen permissions', () {
     testWidgets('shows denial message when local network permission is denied', (tester) async {
       tester.view.physicalSize = const Size(1080, 1920);

@@ -15,8 +15,8 @@
 - `lib/src/presentation/onboarding/onboarding_storage.dart`: SharedPreferences wrapper storing onboarding completion.
 - `lib/src/presentation/permissions/permission_coordinator.dart`: Centralises Local Network/Bluetooth permission requests, surfacing SnackBar guidance and deep links back to iOS settings when access is denied.
 - `lib/src/presentation/screens/dashboard_screen.dart`: Bottom-navigation dashboard that centralises Wi-Fi results, IR guidance, and premium-gated Bluetooth scanning.
-- `lib/src/presentation/screens/paywall_screen.dart`: Paywall experience with blurred scan preview, mock offerings, and unlock/continue actions.
-- `lib/src/presentation/screens/paywall_screen.dart`: Paywall wrapper that highlights locked results and delegates purchases to RevenueCat’s pre-built modal via `RevenueCatUI.presentPaywall`.
+- `lib/src/presentation/screens/paywall_screen.dart`: Dual-mode paywall that shows a development-only mock purchase flow (flagged via `PaywallMode`) or routes to RevenueCat’s modal in production, while consistently highlighting locked results.
+- `lib/src/presentation/screens/infrared_scan_screen.dart`: Lifecycle-aware camera preview with a high-contrast grayscale filter, permission recovery prompts, and settings deep link for permanently denied access.
 - `lib/src/presentation/screens/settings_screen.dart`: Settings hub exposing restore purchases, clear data, legal links, and app version metadata.
 - `lib/src/presentation/theme/app_theme.dart`: Centralized light/dark `ThemeData` definitions applied app-wide.
 - `lib/src/presentation/theme/theme_extensions.dart`: Custom theme extensions (`AppColors`, `AppTextStyles`) plus convenience getters for use throughout the UI.
@@ -35,8 +35,10 @@
 - `lib/src/data/repositories/pigeon_device_scan_repository.dart`: Flutter-side repository that listens to the Pigeon stream, accumulates devices per source, and maps `PlatformException` codes to domain `Failure` types for the use cases.
 
 ## Shared Utilities
-- `lib/core/`: Intended for shared utilities (constants, error models, logging adapters). A `.gitkeep` maintains the folder until populated.
+- `lib/core/`: Shared utilities including the sanitized logger, configuration helpers, and error models.
 - `lib/core/exceptions/failure.dart`: Freezed union encapsulating domain-level failure types with default messaging.
+- `lib/core/logging/app_logger.dart`: Centralised logger enforcing the “no PII” policy and silencing release builds.
+- `lib/core/config/paywall_mode.dart`: Parses the `PAYWALL_MODE` flag and exposes helpers that toggle between RevenueCat and custom paywall implementations.
 
 ## Environment & Configuration
 - `pubspec.yaml`: Includes `flutter_launcher_icons`, `flutter_native_splash`, and runtime deps `go_router`, `permission_handler`, `shared_preferences`, `package_info_plus`, `url_launcher`, along with codegen tooling (`freezed_annotation`, `freezed`, `build_runner`).
